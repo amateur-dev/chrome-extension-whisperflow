@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=350, height=280">
+  <link rel="stylesheet" href="styles.css">
+  <title>VibeCoding</title>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="logo-icon">🎙️</span>
+      <h1>VibeCoding</h1>
+    </div>
+
+    <!-- Idle State -->
+    <div class="screen idle-screen active" id="idleScreen">
+      <button id="recordBtn" class="btn btn-primary">
+        🎙️ CLICK TO RECORD
+      </button>
+      <div class="status-bar">
+        <p class="status">Status: <span id="status">Ready</span></p>
+        <p class="model-status">Model: <span id="modelStatus">Loading...</span></p>
+      </div>
+      <div class="footer-actions">
+        <button class="btn-link" id="settingsBtn">⚙️ Settings</button>
+        <button class="btn-link" id="historyBtn">📋 History</button>
+      </div>
+    </div>
+
+    <!-- Recording State -->
+    <div class="screen recording-screen" id="recordingScreen">
+      <p class="title">🎙️ Recording...</p>
+      <canvas id="waveform" class="waveform" width="300" height="60"></canvas>
+      <div class="recording-info">
+        <p class="volume-label">Volume: <span id="volumeBar" class="volume-bar">▰▰▰▰▰▰▰▰▯▯</span></p>
+        <p class="duration">Duration: <span id="duration">0:00</span></p>
+      </div>
+      <button id="stopBtn" class="btn btn-danger">⏹️ STOP RECORDING</button>
+    </div>
+
+    <!-- Transcribing State -->
+    <div class="screen transcribing-screen" id="transcribingScreen">
+      <p class="title">🔄 Transcribing...</p>
+      <div class="spinner"></div>
+      <p class="info-text">Processing audio with<br>Whisper.cpp (local)</p>
+    </div>
+
+    <!-- Formatting State -->
+    <div class="screen formatting-screen" id="formattingScreen">
+      <p class="title">✨ Formatting...</p>
+      <div class="spinner"></div>
+      <p class="info-text">Applying AI polish<br>(no cloud calls)</p>
+    </div>
+
+    <!-- Preview State -->
+    <div class="screen preview-screen" id="previewScreen">
+      <p class="title">✅ Ready to Send!</p>
+      <div class="preview">
+        <div class="text-section original">
+          <label>ORIGINAL:</label>
+          <p id="originalText" class="text-content"></p>
+        </div>
+        <div class="text-section formatted">
+          <label>FORMATTED:</label>
+          <p id="formattedText" class="text-content"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="insertBtn" class="btn btn-success">➡️ INSERT</button>
+        <button id="copyBtn" class="btn btn-secondary">📋 COPY</button>
+      </div>
+      <div class="secondary-actions">
+        <button id="retryBtn" class="btn-link">🔁 Retry</button>
+        <button id="clearBtn" class="btn-link">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <!-- Error State -->
+    <div class="screen error-screen" id="errorScreen">
+      <p class="title">❌ Error</p>
+      <p id="errorMessage" class="error-text"></p>
+      <button id="errorRetryBtn" class="btn btn-primary">🔁 Try Again</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
