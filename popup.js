@@ -4,7 +4,7 @@
 class VibeCodingPopup {
   constructor() {
     // State
-    this.state = 'idle'; // idle, recording, transcribing, formatting, preview, error
+    this.state = 'idle'; // idle, recording, transcribing, formatting, preview, error, settings
     this.mediaRecorder = null;
     this.audioChunks = [];
     this.recordingStartTime = null;
@@ -13,6 +13,8 @@ class VibeCodingPopup {
     this.audioContext = null;
     this.transcribedText = '';
     this.formattedText = '';
+    this.currentModel = 'moonshine'; // Default to Moonshine
+    this.whisperDownloaded = false;
     
     // DOM Elements
     this.screens = {
@@ -21,7 +23,8 @@ class VibeCodingPopup {
       transcribing: document.getElementById('transcribingScreen'),
       formatting: document.getElementById('formattingScreen'),
       preview: document.getElementById('previewScreen'),
-      error: document.getElementById('errorScreen')
+      error: document.getElementById('errorScreen'),
+      settings: document.getElementById('settingsScreen')
     };
     
     this.elements = {
@@ -32,6 +35,7 @@ class VibeCodingPopup {
       retryBtn: document.getElementById('retryBtn'),
       clearBtn: document.getElementById('clearBtn'),
       errorRetryBtn: document.getElementById('errorRetryBtn'),
+      settingsBtn: document.getElementById('settingsBtn'),
       status: document.getElementById('status'),
       modelStatus: document.getElementById('modelStatus'),
       duration: document.getElementById('duration'),
@@ -39,15 +43,29 @@ class VibeCodingPopup {
       waveform: document.getElementById('waveform'),
       originalText: document.getElementById('originalText'),
       formattedText: document.getElementById('formattedText'),
-      errorMessage: document.getElementById('errorMessage')
+      errorMessage: document.getElementById('errorMessage'),
+      transcribingInfo: document.getElementById('transcribingInfo'),
+      // Settings elements
+      moonshineRadio: document.getElementById('moonshineRadio'),
+      whisperRadio: document.getElementById('whisperRadio'),
+      moonshineStatus: document.getElementById('moonshineStatus'),
+      whisperStatus: document.getElementById('whisperStatus'),
+      saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+      backBtn: document.getElementById('backBtn'),
+      downloadSection: document.getElementById('downloadSection'),
+      downloadText: document.getElementById('downloadText'),
+      progressFill: document.getElementById('progressFill'),
+      downloadPercent: document.getElementById('downloadPercent')
     };
     
     this.init();
   }
   
-  init() {
+  async init() {
+    await this.loadSettings();
     this.bindEvents();
     this.checkModelStatus();
+    this.updateSettingsUI();
   }
   
   bindEvents() {
@@ -58,6 +76,13 @@ class VibeCodingPopup {
     this.elements.retryBtn.addEventListener('click', () => this.retry());
     this.elements.clearBtn.addEventListener('click', () => this.clear());
     this.elements.errorRetryBtn.addEventListener('click', () => this.clear());
+    this.elements.settingsBtn.addEventListener('click', () => this.showSettings());
+    this.elements.saveSettingsBtn.addEventListener('click', () => this.saveSettings());
+    this.elements.backBtn.addEventListener('click', () => this.showScreen('idle'));
+    
+    // Model radio change events
+    this.elements.whisperRadio.addEventListener('change', () => this.onModelChange('whisper'));
+    this.elements.moonshineRadio.addEventListener('change', () => this.onModelChange('moonshine'));
   }
   
   showScreen(screenName) {
@@ -68,11 +93,36 @@ class VibeCodingPopup {
     this.state = screenName;
   }
   
+  async loadSettings() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_SETTINGS' });
+      if (response) {
+        this.currentModel = response.sttModel || 'moonshine';
+        this.whisperDownloaded = response.whisperDownloaded || false;
+      }
+    } catch (error) {
+      console.log('Settings load:', error.message);
+      this.currentModel = 'moonshine';
+      this.whisperDownloaded = false;
+    }
+    
+    // Update transcribing info text to reflect current model
+    this.updateTranscribingInfoText();
+  }
+  
+  updateTranscribingInfoText() {
+    const modelName = this.currentModel === 'moonshine' ? 'Moonshine' : 'Whisper';
+    if (this.elements.transcribingInfo) {
+      this.elements.transcribingInfo.textContent = `Processing audio with ${modelName} (local)`;
+    }
+  }
+  
   async checkModelStatus() {
     try {
       const response = await chrome.runtime.sendMessage({ type: 'CHECK_STATUS' });
       if (response && response.ready) {
-        this.elements.modelStatus.textContent = 'Ready';
+        const modelName = this.currentModel === 'moonshine' ? 'Moonshine' : 'Whisper';
+        this.elements.modelStatus.textContent = `${modelName} Ready`;
         this.elements.modelStatus.style.color = '#00b894';
       } else {
         this.elements.modelStatus.textContent = response?.status || 'Initializing...';
@@ -377,6 +427,126 @@ class VibeCodingPopup {
   showError(message) {
     this.elements.errorMessage.textContent = message;
     this.showScreen('error');
+  }
+  
+  // Settings methods
+  showSettings() {
+    this.updateSettingsUI();
+    this.showScreen('settings');
+  }
+  
+  updateSettingsUI() {
+    // Update radio buttons
+    if (this.currentModel === 'moonshine') {
+      this.elements.moonshineRadio.checked = true;
+    } else {
+      this.elements.whisperRadio.checked = true;
+    }
+    
+    // Update status badges
+    this.elements.moonshineStatus.textContent = 'Default';
+    this.elements.moonshineStatus.className = 'model-status-badge default';
+    
+    if (this.whisperDownloaded) {
+      this.elements.whisperStatus.textContent = 'Ready';
+      this.elements.whisperStatus.className = 'model-status-badge ready';
+    } else {
+      this.elements.whisperStatus.textContent = 'Not Downloaded';
+      this.elements.whisperStatus.className = 'model-status-badge not-downloaded';
+    }
+    
+    // Hide download section initially
+    this.elements.downloadSection.style.display = 'none';
+  }
+  
+  async onModelChange(model) {
+    if (model === 'whisper' && !this.whisperDownloaded) {
+      // Show download section and start download
+      this.elements.downloadSection.style.display = 'block';
+      await this.downloadWhisperModel();
+    }
+  }
+  
+  async downloadWhisperModel() {
+    try {
+      this.elements.downloadText.textContent = 'Downloading Whisper model...';
+      this.elements.whisperStatus.textContent = 'Downloading';
+      this.elements.whisperStatus.className = 'model-status-badge downloading';
+      
+      // Send download request to service worker
+      const response = await chrome.runtime.sendMessage({ 
+        type: 'DOWNLOAD_WHISPER',
+        onProgress: true
+      });
+      
+      // For demo, simulate download progress
+      await this.simulateDownloadProgress();
+      
+      if (response && response.success) {
+        this.whisperDownloaded = true;
+        this.elements.whisperStatus.textContent = 'Ready';
+        this.elements.whisperStatus.className = 'model-status-badge ready';
+        this.elements.downloadSection.style.display = 'none';
+      } else {
+        throw new Error(response?.error || 'Download failed');
+      }
+      
+    } catch (error) {
+      console.error('Download error:', error);
+      this.elements.downloadText.textContent = 'Download failed. Please try again.';
+      this.elements.whisperStatus.textContent = 'Not Downloaded';
+      this.elements.whisperStatus.className = 'model-status-badge not-downloaded';
+      
+      // Revert to Moonshine
+      this.elements.moonshineRadio.checked = true;
+    }
+  }
+  
+  async simulateDownloadProgress() {
+    // Simulate download progress for demo
+    for (let i = 0; i <= 100; i += 5) {
+      this.elements.progressFill.style.width = `${i}%`;
+      this.elements.downloadPercent.textContent = `${i}%`;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+  
+  async saveSettings() {
+    const selectedModel = this.elements.whisperRadio.checked ? 'whisper' : 'moonshine';
+    
+    // If Whisper is selected but not downloaded, don't save
+    if (selectedModel === 'whisper' && !this.whisperDownloaded) {
+      this.elements.downloadText.textContent = 'Please wait for Whisper model to download first.';
+      this.elements.downloadSection.style.display = 'block';
+      return;
+    }
+    
+    this.currentModel = selectedModel;
+    
+    try {
+      // Save settings via service worker
+      await chrome.runtime.sendMessage({
+        type: 'SAVE_SETTINGS',
+        settings: {
+          sttModel: this.currentModel,
+          whisperDownloaded: this.whisperDownloaded
+        }
+      });
+      
+      // Update the model status display
+      const modelName = this.currentModel === 'moonshine' ? 'Moonshine' : 'Whisper';
+      this.elements.modelStatus.textContent = `${modelName} Ready`;
+      
+      // Update transcribing info text using textContent (safer than innerHTML)
+      this.updateTranscribingInfoText();
+      
+      // Go back to idle screen
+      this.showScreen('idle');
+      
+    } catch (error) {
+      console.error('Save settings error:', error);
+      this.showError('Failed to save settings. Please try again.');
+    }
   }
 }
 

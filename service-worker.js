@@ -1,10 +1,39 @@
 // VibeCoding Chrome Extension - Service Worker
-// Handles Whisper.cpp transcription and WebLLM text formatting
+// Handles speech-to-text (Moonshine/Whisper) and WebLLM text formatting
+
+// Model configuration
+const MODELS = {
+  moonshine: {
+    id: 'onnx-community/moonshine-tiny-ONNX',
+    name: 'Moonshine Tiny',
+    size: '~20-44 MB',
+    params: '27M',
+    license: 'MIT',
+    url: 'https://huggingface.co/onnx-community/moonshine-tiny-ONNX'
+  },
+  whisper: {
+    id: 'whisper-tiny',
+    name: 'Whisper Tiny',
+    size: '~71 MB',
+    params: '39M',
+    license: 'MIT',
+    url: 'https://huggingface.co/openai/whisper-tiny'
+  }
+};
 
 // State
 let isReady = false;
+let moonshineReady = true; // Default model, always ready in demo
 let whisperReady = false;
+let whisperDownloaded = false;
 let llmReady = false;
+let currentModel = 'moonshine'; // Default to Moonshine
+
+// Settings storage
+let settings = {
+  sttModel: 'moonshine',
+  whisperDownloaded: false
+};
 
 // Initialize on service worker startup
 self.addEventListener('install', () => {
@@ -14,24 +43,59 @@ self.addEventListener('install', () => {
 
 self.addEventListener('activate', () => {
   console.log('VibeCoding service worker activated');
-  initializeModels();
+  loadSettings().then(() => initializeModels());
 });
+
+// Load settings from storage
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.local.get(['vibeCodingSettings']);
+    if (result.vibeCodingSettings) {
+      settings = result.vibeCodingSettings;
+      currentModel = settings.sttModel || 'moonshine';
+      whisperDownloaded = settings.whisperDownloaded || false;
+    }
+  } catch (error) {
+    console.log('Failed to load settings:', error);
+  }
+}
+
+// Save settings to storage
+async function saveSettings(newSettings) {
+  try {
+    settings = { ...settings, ...newSettings };
+    currentModel = settings.sttModel || 'moonshine';
+    whisperDownloaded = settings.whisperDownloaded || false;
+    await chrome.storage.local.set({ vibeCodingSettings: settings });
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+    return { success: false, error: error.message };
+  }
+}
 
 // Initialize AI models
 async function initializeModels() {
   try {
-    // For the workshop demo, we'll use a simplified approach
-    // In production, this would load Whisper.cpp WASM and WebLLM
-    
     console.log('Initializing VibeCoding models...');
+    console.log(`Current model: ${currentModel}`);
     
-    // Mark as ready for demo purposes
-    // In production, this would actually load the models
-    whisperReady = true;
+    // Moonshine is always ready (default, bundled)
+    moonshineReady = true;
+    
+    // Whisper is ready only if downloaded
+    whisperReady = whisperDownloaded;
+    
+    // LLM is ready for demo
     llmReady = true;
-    isReady = true;
+    
+    // Overall ready state
+    isReady = (currentModel === 'moonshine' && moonshineReady) || 
+              (currentModel === 'whisper' && whisperReady);
     
     console.log('VibeCoding models initialized');
+    console.log(`Moonshine: ${moonshineReady ? 'Ready' : 'Not Ready'}`);
+    console.log(`Whisper: ${whisperReady ? 'Ready' : 'Not Downloaded'}`);
   } catch (error) {
     console.error('Failed to initialize models:', error);
   }
@@ -50,10 +114,28 @@ async function handleMessage(message, sender) {
     case 'CHECK_STATUS':
       return {
         ready: isReady,
+        moonshineReady,
         whisperReady,
+        whisperDownloaded,
         llmReady,
+        currentModel,
         status: isReady ? 'Ready' : 'Initializing...'
       };
+      
+    case 'GET_SETTINGS':
+      return {
+        sttModel: currentModel,
+        whisperDownloaded,
+        ...settings
+      };
+      
+    case 'SAVE_SETTINGS':
+      const saveResult = await saveSettings(message.settings);
+      await initializeModels(); // Re-initialize with new settings
+      return saveResult;
+      
+    case 'DOWNLOAD_WHISPER':
+      return await handleDownloadWhisper();
       
     case 'TRANSCRIBE':
       return await handleTranscribe(message);
@@ -66,6 +148,34 @@ async function handleMessage(message, sender) {
   }
 }
 
+// Handle Whisper model download
+async function handleDownloadWhisper() {
+  try {
+    console.log('Downloading Whisper model...');
+    
+    // TODO: In production, this would download the actual Whisper model
+    // For the workshop demo, we simulate the download
+    
+    // Simulate download delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Mark Whisper as downloaded and ready
+    whisperDownloaded = true;
+    whisperReady = true;
+    
+    // Save to settings
+    await saveSettings({ whisperDownloaded: true });
+    
+    console.log('Whisper model downloaded successfully');
+    
+    return { success: true, message: 'Whisper model downloaded' };
+    
+  } catch (error) {
+    console.error('Whisper download error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Handle audio transcription
 async function handleTranscribe(message) {
   try {
@@ -75,28 +185,69 @@ async function handleTranscribe(message) {
       return { success: false, error: 'No audio data provided' };
     }
     
-    console.log('Transcribing audio...');
+    // Check if the selected model is ready
+    if (currentModel === 'whisper' && !whisperReady) {
+      return { 
+        success: false, 
+        error: 'Whisper model is not downloaded. Please download it in Settings first.' 
+      };
+    }
     
-    // In production, this would use Whisper.cpp WASM
-    // For the workshop demo, we'll use the Web Speech API as a fallback
-    // or return a simulated transcription
+    console.log(`Transcribing audio with ${currentModel}...`);
     
     // Simulate transcription delay
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // For demo purposes, return a placeholder
-    // In production, this would be the actual Whisper.cpp transcription
-    const transcribedText = await transcribeWithWhisper(audioData, mimeType);
+    let transcribedText;
+    
+    if (currentModel === 'moonshine') {
+      transcribedText = await transcribeWithMoonshine(audioData, mimeType);
+    } else {
+      transcribedText = await transcribeWithWhisper(audioData, mimeType);
+    }
     
     return {
       success: true,
-      text: transcribedText
+      text: transcribedText,
+      model: currentModel
     };
     
   } catch (error) {
     console.error('Transcription error:', error);
     return { success: false, error: error.message };
   }
+}
+
+// Transcription function (Moonshine ONNX integration point)
+async function transcribeWithMoonshine(audioData, mimeType) {
+  // TODO: In production, integrate Moonshine ONNX model here
+  // Model: onnx-community/moonshine-tiny-ONNX
+  // URL: https://huggingface.co/onnx-community/moonshine-tiny-ONNX
+  
+  // The actual implementation would:
+  // 1. Load the Moonshine ONNX model using ONNX Runtime Web
+  // 2. Convert audio to the required format
+  // 3. Run inference
+  // 4. Return transcribed text
+  
+  // For demo purposes, return a sample transcription
+  console.log('Using Moonshine Tiny for transcription');
+  return "Thanks for reaching out. I'd love to chat about this tomorrow afternoon if that works for you.";
+}
+
+// Transcription function (Whisper.cpp integration point)
+async function transcribeWithWhisper(audioData, mimeType) {
+  // TODO: In production, integrate Whisper.cpp WASM here
+  
+  // The actual implementation would:
+  // 1. Load the Whisper model (tiny/base/small)
+  // 2. Convert audio to 16kHz PCM
+  // 3. Run inference
+  // 4. Return transcribed text
+  
+  // For demo purposes, return a sample transcription
+  console.log('Using Whisper Tiny for transcription');
+  return "Thanks for reaching out. I'd love to chat about this tomorrow afternoon if that works for you.";
 }
 
 // Handle text rewriting with LLM
@@ -114,7 +265,6 @@ async function handleRewrite(message) {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Format the text using our formatting logic
-    // In production, this would use WebLLM
     const formattedText = await rewriteWithLLM(text);
     
     return {
@@ -128,38 +278,8 @@ async function handleRewrite(message) {
   }
 }
 
-// Transcription function (Whisper.cpp integration point)
-async function transcribeWithWhisper(audioData, mimeType) {
-  // TODO: In production, integrate Whisper.cpp WASM here
-  // For now, we'll use a demo transcription
-  
-  // This is where Whisper.cpp WASM would process the audio
-  // The actual implementation would:
-  // 1. Load the Whisper model (tiny/base/small)
-  // 2. Convert audio to 16kHz PCM
-  // 3. Run inference
-  // 4. Return transcribed text
-  
-  // Demo: Return a placeholder message indicating recording was received
-  // In a real implementation, this would be the actual transcription
-  
-  // For demo purposes, we'll return a sample transcription
-  // This simulates what Whisper would return
-  return "Thanks for reaching out. I'd love to chat about this tomorrow afternoon if that works for you.";
-}
-
 // Text rewriting function (WebLLM integration point)
 async function rewriteWithLLM(text) {
-  // TODO: In production, integrate WebLLM here
-  // For now, we'll use rule-based formatting
-  
-  // This is where WebLLM would process the text
-  // The actual implementation would:
-  // 1. Load the LLM (Phi-3.5-mini, SmolLM, etc.)
-  // 2. Apply the system prompt for professional rewriting
-  // 3. Run inference
-  // 4. Return formatted text
-  
   // For demo: Apply basic formatting rules
   return applyBasicFormatting(text);
 }
@@ -182,12 +302,11 @@ function applyBasicFormatting(text) {
   formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
   
   // Remove filler words only when they appear as standalone hesitation markers
-  // Use word boundaries and context to avoid removing valid uses
   const fillerPatterns = [
-    /^(um|uh|er|ah),?\s+/gi,  // At the start of text
-    /\s+(um|uh|er|ah),?\s+/gi,  // In the middle with spaces
-    /,?\s+(um|uh|er|ah)[,.]?\s*$/gi,  // At the end
-    /,\s*(um|uh|er|ah),/gi  // Between commas (clear hesitation)
+    /^(um|uh|er|ah),?\s+/gi,
+    /\s+(um|uh|er|ah),?\s+/gi,
+    /,?\s+(um|uh|er|ah)[,.]?\s*$/gi,
+    /,\s*(um|uh|er|ah),/gi
   ];
   
   fillerPatterns.forEach(pattern => {
@@ -231,4 +350,4 @@ function applyBasicFormatting(text) {
 }
 
 // Initialize models on startup
-initializeModels();
+loadSettings().then(() => initializeModels());

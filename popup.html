@@ -43,7 +43,7 @@
     <div class="screen transcribing-screen" id="transcribingScreen">
       <p class="title">🔄 Transcribing...</p>
       <div class="spinner"></div>
-      <p class="info-text">Processing audio with<br>Whisper.cpp (local)</p>
+      <p class="info-text" id="transcribingInfo">Processing audio with<br>Moonshine (local)</p>
     </div>
 
     <!-- Formatting State -->
@@ -81,6 +81,48 @@
       <p class="title">❌ Error</p>
       <p id="errorMessage" class="error-text"></p>
       <button id="errorRetryBtn" class="btn btn-primary">🔁 Try Again</button>
+    </div>
+
+    <!-- Settings State -->
+    <div class="screen settings-screen" id="settingsScreen">
+      <p class="title">⚙️ Settings</p>
+      
+      <div class="settings-section">
+        <label class="settings-label">Speech-to-Text Model</label>
+        <div class="model-options">
+          <div class="model-option" id="moonshineOption">
+            <input type="radio" name="sttModel" id="moonshineRadio" value="moonshine" checked>
+            <label for="moonshineRadio" class="model-card">
+              <span class="model-name">🌙 Moonshine Tiny</span>
+              <span class="model-info">~20-44 MB • 27M params • MIT</span>
+              <span class="model-status-badge" id="moonshineStatus">Default</span>
+            </label>
+          </div>
+          <div class="model-option" id="whisperOption">
+            <input type="radio" name="sttModel" id="whisperRadio" value="whisper">
+            <label for="whisperRadio" class="model-card">
+              <span class="model-name">🎤 Whisper Tiny</span>
+              <span class="model-info">~71 MB • Requires download</span>
+              <span class="model-status-badge" id="whisperStatus">Not Downloaded</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="download-section" id="downloadSection" style="display: none;">
+        <div class="download-progress">
+          <p class="download-text" id="downloadText">Downloading Whisper model...</p>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+          </div>
+          <p class="download-percent" id="downloadPercent">0%</p>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button id="saveSettingsBtn" class="btn btn-success">💾 Save</button>
+        <button id="backBtn" class="btn btn-secondary">← Back</button>
+      </div>
     </div>
   </div>
 
