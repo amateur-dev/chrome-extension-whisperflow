@@ -161,43 +161,73 @@ async function rewriteWithLLM(text) {
   // 4. Return formatted text
   
   // For demo: Apply basic formatting rules
-  let formatted = text;
+  return applyBasicFormatting(text);
+}
+
+/**
+ * Apply basic text formatting rules (fallback when LLM not available)
+ * @param {string} text - Raw text to format
+ * @returns {string} - Formatted text
+ */
+function applyBasicFormatting(text) {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+  
+  let formatted = text.trim();
+  
+  if (!formatted) return '';
   
   // Capitalize first letter
   formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  
+  // Remove filler words only when they appear as standalone hesitation markers
+  // Use word boundaries and context to avoid removing valid uses
+  const fillerPatterns = [
+    /^(um|uh|er|ah),?\s+/gi,  // At the start of text
+    /\s+(um|uh|er|ah),?\s+/gi,  // In the middle with spaces
+    /,?\s+(um|uh|er|ah)[,.]?\s*$/gi,  // At the end
+    /,\s*(um|uh|er|ah),/gi  // Between commas (clear hesitation)
+  ];
+  
+  fillerPatterns.forEach(pattern => {
+    formatted = formatted.replace(pattern, ' ');
+  });
+  
+  // Fix multiple spaces
+  formatted = formatted.replace(/\s+/g, ' ');
   
   // Ensure proper sentence endings
   if (!/[.!?]$/.test(formatted.trim())) {
     formatted = formatted.trim() + '.';
   }
   
-  // Fix common issues
-  formatted = formatted
-    // Remove filler words
-    .replace(/\b(um|uh|like|you know|basically|actually)\b/gi, '')
-    // Fix double spaces
-    .replace(/\s+/g, ' ')
-    // Capitalize I
-    .replace(/\bi\b/g, 'I')
-    // Fix common contractions
-    .replace(/\bi'm\b/gi, "I'm")
-    .replace(/\bi'd\b/gi, "I'd")
-    .replace(/\bi'll\b/gi, "I'll")
-    .replace(/\bi've\b/gi, "I've")
-    .replace(/\bdon't\b/gi, "don't")
-    .replace(/\bcan't\b/gi, "can't")
-    .replace(/\bwon't\b/gi, "won't")
-    .replace(/\bdidn't\b/gi, "didn't")
-    .replace(/\bwouldn't\b/gi, "wouldn't")
-    .replace(/\bcouldn't\b/gi, "couldn't")
-    .replace(/\bshouldn't\b/gi, "shouldn't")
-    // Trim whitespace
-    .trim();
+  // Fix capitalization after periods
+  formatted = formatted.replace(/\.\s+[a-z]/g, (match) => match.toUpperCase());
   
-  // Add professional polish
-  // In production, the LLM would handle this more intelligently
+  // Capitalize standalone "i"
+  formatted = formatted.replace(/\bi\b/g, 'I');
   
-  return formatted;
+  // Fix common contractions
+  const contractions = {
+    "i'm": "I'm",
+    "i'd": "I'd",
+    "i'll": "I'll",
+    "i've": "I've",
+    "don't": "don't",
+    "can't": "can't",
+    "won't": "won't",
+    "didn't": "didn't",
+    "wouldn't": "wouldn't",
+    "couldn't": "couldn't",
+    "shouldn't": "shouldn't"
+  };
+  
+  Object.entries(contractions).forEach(([wrong, right]) => {
+    formatted = formatted.replace(new RegExp(`\\b${wrong}\\b`, 'gi'), right);
+  });
+  
+  return formatted.trim();
 }
 
 // Initialize models on startup

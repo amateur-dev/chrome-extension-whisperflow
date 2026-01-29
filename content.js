@@ -47,7 +47,7 @@ function insertTextIntoActiveElement(text) {
     
     return { 
       success: false, 
-      error: 'Cannot find an editable text field. Please click on a text field first.' 
+      error: 'Cannot find an editable text field. Please click on a text field first, or use the Copy button to copy the text to your clipboard.' 
     };
     
   } catch (error) {
