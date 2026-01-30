@@ -8,6 +8,7 @@
 - Identifying missing implementation details in the MVP code components.
 
 ## Recent Changes
+- Updated `RULES.md` to enforce Conventional Commits and detailed messages.
 - Deleted generic "Vibe Coding" tutorial files.
 - Populated `TECH_STACK.md` and `ARCH.md` with real repo analysis (Vanilla JS, MV3, WASM workers).
 - Created `productContext.md` derived from `PRD.md`.
