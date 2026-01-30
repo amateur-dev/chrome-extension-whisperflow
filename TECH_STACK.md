@@ -1,11 +1,27 @@
 # TECH_STACK
 
-Fill this with concrete versions and decisions. Example:
+## Core Runtime
+- **Environment:** Chrome Extension (Manifest V3)
+- **Language:** Vanilla JavaScript (ES2022+)
+- **Runtime:** Service Workers (Background), DOM API (Popup/Content Scripts)
 
-- Runtime: Node 20.x
-- Extension manifest: Chrome Manifest V3
-- UI: plain HTML/JS or React (specify)
-- Bundler: esbuild
-- Test: vitest / jest
+## AI & ML (Local/Edge)
+- **Speech-to-Text:** Whisper.cpp (WASM port)
+  - Wrapper: `lib/whisper-worker.js`
+- **Text Refinement:** WebLLM (Browser-native LLM inference)
+  - Wrapper: `lib/webllm-worker.js`
+  - *No cloud API keys required*
 
-Keep this file small and authoritative — agents should prefer it over guesses.
+## Frontend (Popup & Content)
+- **Framework:** Vanilla JS (No React/Vue/Svelte)
+- **Styling:** CSS3 (Variables, Flexbox/Grid) in `styles.css`
+- **Bundler:** None (Native ES Modules)
+
+## Architecture specific
+- **Storage:** `chrome.storage.local` for transcripts and settings
+- **Communication:**
+  - `chrome.runtime.sendMessage` / `onMessage` for Popup <-> Background
+  - `Worker.postMessage` for Background <-> AI Workers (Moonshine, Whisper, WebLLM)
+
+## Testing
+- **Strategy:** Manual "Vibe Checks" (E2E)
