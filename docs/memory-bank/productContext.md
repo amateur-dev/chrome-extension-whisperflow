@@ -34,3 +34,6 @@ Transform how knowledge workers write by combining local speech-to-text with loc
 
 ### Source of Truth
 - **Primary:** `PRD.md` (root directory) contains the detailed business and functional requirements.
+
+### Vision Reference
+See `docs/CORE_IDEA.md` for the overarching system philosophy.
