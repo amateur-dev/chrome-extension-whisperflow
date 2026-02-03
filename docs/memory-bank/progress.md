@@ -1,7 +1,7 @@
 # progress
 
-## Project Status: MVP Development
-**Estimated Completion:** ~75% (Core transcription flow complete, WebLLM refinement pending)
+## Project Status: MVP Nearly Complete
+**Estimated Completion:** ~90% (Core transcription + formatting complete)
 
 ## Milestones
 - [x] **Project Scaffold:** Manifest, Popup, Background script created.
@@ -9,7 +9,7 @@
 - [x] **Testing Infrastructure:**
   - [x] Vitest configured with ES Module support.
   - [x] Chrome API mocks for unit testing.
-  - [x] 30 unit tests for `lib/utils.js` (all passing).
+  - [x] 45 unit tests for `lib/utils.js` (all passing).
   - [x] 4 integration tests with real Moonshine transcription.
   - [x] Audio fixtures with 16kHz WAV format.
 - [x] **Service Worker Hub:**
@@ -20,16 +20,21 @@
   - [x] Full Transformers.js pipeline in `moonshine-worker.js`.
   - [x] Progress callbacks during model loading.
   - [x] Worker idle cleanup after 5 minutes.
+- [x] **Text Formatting (Phase 3 Alternative):**
+  - [x] Enhanced `applyBasicFormatting()` with 12-step pipeline.
+  - [x] Filler/hesitation word removal (um, uh, like, you know, etc.).
+  - [x] Repeated word cleanup, proper noun capitalization.
+  - [x] Question detection, contraction normalization.
+  - [x] WebLLM skipped for MVP — basic formatting sufficient.
 - [x] **Text Injection:** `content.js` handles rich editors.
-- [ ] **WebLLM Integration:** `webllm-worker.js` not yet implemented.
 - [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
 
 ## Known Blockers
-- None for MVP. WebLLM is enhancement, not blocker.
+- None for MVP.
 
 ## Test Commands
 ```bash
-npm test              # Unit tests (~1s)
-npm run test:integration  # Real model transcription (~9s)
-npm run test:all      # All 34 tests
+npm test                  # Unit tests (45 tests, ~300ms)
+npm run test:integration  # Real model transcription (~7s)
+npm run test:all          # All 49 tests
 ```

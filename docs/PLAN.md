@@ -24,12 +24,20 @@
 - [x] **Recording Limit**: Auto-stop at 5 minutes to prevent memory issues.
 - [ ] **Whisper Core**: Deferred (Moonshine is primary, Whisper WASM stub exists).
 
-## Phase 3: The Brain (Refinement) — Future
-- [ ] **WebLLM Setup**: Configure `webllm-worker.js` with `MLCEngine`.
-- [ ] **Model Selection**: SmolLM2-1.7B-Instruct (~1.5GB) recommended.
-- [ ] **Prompt Engineering**: "Fix Grammar" and "Professional Tone" modes.
-- [ ] **Streaming Response**: Token streaming from Worker → Popup.
-- [x] **Basic Formatting**: `applyBasicFormatting()` in utils.js works as fallback.
+## Phase 3: The Brain (Refinement) — Skipped for MVP
+- [x] **Basic Formatting Enhanced**: Comprehensive `applyBasicFormatting()` with:
+  - Filler word removal (um, uh, er, ah, hmm, like, you know, I mean, basically)
+  - Repeated word cleanup (the the → the)
+  - Auto-capitalization of proper nouns (Gmail, Slack, Notion, etc.)
+  - Acronym uppercasing (AI, API, URL, HTML, CSS)
+  - Question detection (what/how/can sentences get question marks)
+  - Tag question handling ("this works right?")
+  - 40+ contraction normalization
+  - Punctuation spacing fixes
+- [ ] **WebLLM Setup**: Skipped — 1.5GB+ download not worth it for MVP.
+- [ ] **Model Selection**: SmolLM2-1.7B-Instruct considered, deferred.
+- [ ] **Prompt Engineering**: Not needed with improved basic formatting.
+- [ ] **Streaming Response**: Not needed without LLM.
 
 ## Phase 4: Injection & Output ✅
 - [x] **Active Element Detection**: `content.js` handles textarea, input, contenteditable.

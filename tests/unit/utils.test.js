@@ -12,6 +12,7 @@ import {
   isWasmSupported,
   applyBasicFormatting,
   CONTRACTIONS_MAP,
+  ALWAYS_CAPITALIZE,
   storage
 } from '../../lib/utils.js';
 
@@ -185,7 +186,8 @@ describe('applyBasicFormatting', () => {
 
   it('should fix standalone "i" to "I"', () => {
     expect(applyBasicFormatting('i am here')).toBe('I am here.');
-    expect(applyBasicFormatting('can i help')).toBe('Can I help.');
+    // "can i help" starts with question word, so gets question mark
+    expect(applyBasicFormatting('can i help')).toBe('Can I help?');
   });
 
   it('should fix contractions', () => {
@@ -202,6 +204,103 @@ describe('applyBasicFormatting', () => {
   it('should collapse multiple spaces', () => {
     expect(applyBasicFormatting('hello    world')).toBe('Hello world.');
   });
+
+  it('should remove discourse markers as fillers', () => {
+    // "you know" as interjection - comma may be absorbed
+    const result1 = applyBasicFormatting('I think, you know, we should go');
+    expect(result1).not.toContain('you know');
+    expect(result1).toContain('I think');
+    expect(result1).toContain('we should go');
+    
+    // "like" at start
+    expect(applyBasicFormatting('like, that was cool')).toBe('That was cool.');
+    
+    // "I mean" as filler
+    const result2 = applyBasicFormatting('I mean, this is great');
+    expect(result2).not.toContain('I mean');
+    expect(result2).toContain('great');
+    
+    // "basically" at start
+    expect(applyBasicFormatting('basically we need to fix it')).toBe('We need to fix it.');
+  });
+
+  it('should remove repeated words', () => {
+    expect(applyBasicFormatting('the the cat')).toBe('The cat.');
+    expect(applyBasicFormatting('I I think so')).toBe('I think so.');
+    expect(applyBasicFormatting('we we we need help')).toBe('We we need help.'); // Only removes consecutive pairs
+  });
+
+  it('should capitalize proper nouns', () => {
+    expect(applyBasicFormatting('check your gmail')).toContain('Gmail');
+    expect(applyBasicFormatting('open google docs')).toContain('Google');
+    expect(applyBasicFormatting('send it on slack')).toContain('Slack');
+    expect(applyBasicFormatting('post on linkedin')).toContain('Linkedin');
+  });
+
+  it('should uppercase known acronyms', () => {
+    expect(applyBasicFormatting('the ai is smart')).toContain('AI');
+    expect(applyBasicFormatting('call the api')).toContain('API');
+    expect(applyBasicFormatting('check the url')).toContain('URL');
+  });
+
+  it('should detect and add question marks', () => {
+    expect(applyBasicFormatting('what do you think')).toBe('What do you think?');
+    expect(applyBasicFormatting('how does this work')).toBe('How does this work?');
+    expect(applyBasicFormatting('is this correct')).toBe('Is this correct?');
+    expect(applyBasicFormatting('can you help me')).toBe('Can you help me?');
+  });
+
+  it('should add question mark for tag questions', () => {
+    expect(applyBasicFormatting('this works right')).toBe('This works right?');
+    expect(applyBasicFormatting('you can do it, can you')).toBe("You can do it, can you?");
+  });
+
+  it('should fix spacing around punctuation', () => {
+    expect(applyBasicFormatting('hello , world')).toBe('Hello, world.');
+    expect(applyBasicFormatting('one,two,three')).toBe('One, two, three.');
+  });
+
+  it('should handle more contractions', () => {
+    // Contractions at sentence start get capitalized
+    expect(applyBasicFormatting("let's go")).toBe("Let's go.");
+    expect(applyBasicFormatting("that's cool")).toBe("That's cool.");
+    expect(applyBasicFormatting("we're ready")).toBe("We're ready.");
+    expect(applyBasicFormatting("they've arrived")).toBe("They've arrived.");
+    // Contractions mid-sentence stay lowercase
+    expect(applyBasicFormatting("I think that's cool")).toBe("I think that's cool.");
+  });
+
+  it('should handle hmm as filler', () => {
+    expect(applyBasicFormatting('hmm I think so')).toBe('I think so.');
+    expect(applyBasicFormatting('the answer is, hmm, yes')).toBe('The answer is, yes.');
+  });
+
+  it('should not duplicate punctuation', () => {
+    expect(applyBasicFormatting('hello..')).toBe('Hello.');
+    // "what" starts with question word, but already has punctuation
+    expect(applyBasicFormatting('what??')).toBe('What?');
+    expect(applyBasicFormatting('wow!!!')).toBe('Wow!');
+  });
+
+  it('should handle complex real-world transcription', () => {
+    const input = 'um so basically i was, you know, thinking about the the api and, uh, how it works with gmail';
+    const result = applyBasicFormatting(input);
+    
+    // Should not have fillers
+    expect(result).not.toMatch(/\bum\b/i);
+    expect(result).not.toMatch(/\buh\b/i);
+    expect(result).not.toMatch(/\byou know\b/i);
+    
+    // Should have proper nouns capitalized
+    expect(result).toContain('API');
+    expect(result).toContain('Gmail');
+    
+    // Should not have repeated words
+    expect(result).not.toMatch(/\bthe the\b/i);
+    
+    // Should end with punctuation
+    expect(result).toMatch(/[.!?]$/);
+  });
 });
 
 
@@ -210,6 +309,35 @@ describe('CONTRACTIONS_MAP', () => {
     expect(CONTRACTIONS_MAP["i'm"]).toBe("I'm");
     expect(CONTRACTIONS_MAP["don't"]).toBe("don't");
     expect(CONTRACTIONS_MAP["can't"]).toBe("can't");
+  });
+
+  it('should have expanded contractions', () => {
+    expect(CONTRACTIONS_MAP["let's"]).toBe("let's");
+    expect(CONTRACTIONS_MAP["that's"]).toBe("that's");
+    expect(CONTRACTIONS_MAP["we're"]).toBe("we're");
+    expect(CONTRACTIONS_MAP["they've"]).toBe("they've");
+  });
+});
+
+
+describe('ALWAYS_CAPITALIZE', () => {
+  it('should include common platforms', () => {
+    expect(ALWAYS_CAPITALIZE).toContain('gmail');
+    expect(ALWAYS_CAPITALIZE).toContain('slack');
+    expect(ALWAYS_CAPITALIZE).toContain('notion');
+    expect(ALWAYS_CAPITALIZE).toContain('linkedin');
+  });
+
+  it('should include common acronyms', () => {
+    expect(ALWAYS_CAPITALIZE).toContain('ai');
+    expect(ALWAYS_CAPITALIZE).toContain('api');
+    expect(ALWAYS_CAPITALIZE).toContain('url');
+  });
+
+  it('should include days of the week', () => {
+    expect(ALWAYS_CAPITALIZE).toContain('monday');
+    expect(ALWAYS_CAPITALIZE).toContain('friday');
+    expect(ALWAYS_CAPITALIZE).toContain('sunday');
   });
 });
 

@@ -388,71 +388,141 @@ async function handleRewrite(message) {
 
 // Text rewriting function (WebLLM integration point)
 async function rewriteWithLLM(text) {
-  // For demo: Apply basic formatting rules
+  // Apply comprehensive text formatting
   return applyBasicFormatting(text);
 }
 
 /**
- * Apply basic text formatting rules (fallback when LLM not available)
+ * Words that should always be capitalized (proper nouns, acronyms)
+ */
+const ALWAYS_CAPITALIZE = [
+  'gmail', 'google', 'slack', 'notion', 'linkedin', 'twitter', 'facebook',
+  'microsoft', 'apple', 'amazon', 'github', 'youtube', 'instagram', 'whatsapp',
+  'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+  'january', 'february', 'march', 'april', 'may', 'june', 'july', 'august',
+  'september', 'october', 'november', 'december',
+  'ai', 'api', 'url', 'html', 'css', 'javascript', 'python', 'nodejs'
+];
+
+/**
+ * Standard contractions map for text formatting
+ */
+const CONTRACTIONS_MAP = {
+  "i'm": "I'm", "i'd": "I'd", "i'll": "I'll", "i've": "I've",
+  "don't": "don't", "can't": "can't", "won't": "won't", "didn't": "didn't",
+  "wouldn't": "wouldn't", "couldn't": "couldn't", "shouldn't": "shouldn't",
+  "isn't": "isn't", "aren't": "aren't", "wasn't": "wasn't", "weren't": "weren't",
+  "haven't": "haven't", "hasn't": "hasn't", "hadn't": "hadn't",
+  "let's": "let's", "that's": "that's", "there's": "there's", "here's": "here's",
+  "what's": "what's", "who's": "who's", "it's": "it's", "he's": "he's", "she's": "she's",
+  "we're": "we're", "they're": "they're", "you're": "you're",
+  "we've": "we've", "they've": "they've", "you've": "you've",
+  "we'll": "we'll", "they'll": "they'll", "you'll": "you'll", "he'll": "he'll", "she'll": "she'll",
+  "we'd": "we'd", "they'd": "they'd", "you'd": "you'd", "he'd": "he'd", "she'd": "she'd"
+};
+
+/**
+ * Question words for detecting questions
+ */
+const QUESTION_WORDS = ['what', 'when', 'where', 'why', 'how', 'who', 'which', 'whose', 'whom', 'is', 'are', 'was', 'were', 'do', 'does', 'did', 'can', 'could', 'would', 'should', 'will', 'shall', 'have', 'has', 'had'];
+
+/**
+ * Apply comprehensive text formatting for speech-to-text output
  * @param {string} text - Raw text to format
  * @returns {string} - Formatted text
  */
 function applyBasicFormatting(text) {
-  if (!text || typeof text !== 'string') {
-    return '';
-  }
+  if (!text || typeof text !== 'string') return '';
   
   let formatted = text.trim();
-  
   if (!formatted) return '';
   
-  // Capitalize first letter
-  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  
-  // Remove filler words only when they appear as standalone hesitation markers
-  const fillerPatterns = [
-    /^(um|uh|er|ah),?\s+/gi,
-    /\s+(um|uh|er|ah),?\s+/gi,
-    /,?\s+(um|uh|er|ah)[,.]?\s*$/gi,
-    /,\s*(um|uh|er|ah),/gi
+  // Step 1: Remove hesitation markers (um, uh, er, ah, hmm)
+  const hesitationPatterns = [
+    /^(um|uh|er|ah|hmm|hm),?\s+/gi,
+    /\s+(um|uh|er|ah|hmm|hm),?\s+/gi,
+    /,?\s+(um|uh|er|ah|hmm|hm)[,.]?\s*$/gi,
+    /,\s*(um|uh|er|ah|hmm|hm),/gi
   ];
-  
-  fillerPatterns.forEach(pattern => {
+  hesitationPatterns.forEach(pattern => {
     formatted = formatted.replace(pattern, ' ');
   });
   
-  // Fix multiple spaces
-  formatted = formatted.replace(/\s+/g, ' ');
+  // Step 2: Remove discourse markers as fillers
+  formatted = formatted.replace(/^like,?\s+/gi, '');
+  formatted = formatted.replace(/,\s*like,\s*/gi, ', ');
+  formatted = formatted.replace(/,?\s*you know,?\s*/gi, ' ');
+  formatted = formatted.replace(/^you know,?\s*/gi, '');
+  formatted = formatted.replace(/,?\s*i mean,?\s*/gi, ' ');
+  formatted = formatted.replace(/^i mean,?\s*/gi, '');
+  formatted = formatted.replace(/^so,?\s+/gi, '');
+  formatted = formatted.replace(/^basically,?\s*/gi, '');
+  formatted = formatted.replace(/^actually,?\s*/gi, '');
+  formatted = formatted.replace(/^anyway,?\s*/gi, '');
+  formatted = formatted.replace(/^anyways,?\s*/gi, '');
   
-  // Ensure proper sentence endings
-  if (!/[.!?]$/.test(formatted.trim())) {
-    formatted = formatted.trim() + '.';
-  }
+  // Step 3: Remove repeated words (the the → the)
+  formatted = formatted.replace(/\b(\w+)\s+\1\b/gi, '$1');
   
-  // Fix capitalization after periods
-  formatted = formatted.replace(/\.\s+[a-z]/g, (match) => match.toUpperCase());
+  // Step 4: Fix multiple spaces and trim
+  formatted = formatted.replace(/\s+/g, ' ').trim();
+  if (!formatted) return '';
   
-  // Capitalize standalone "i"
+  // Step 5: Capitalize first letter
+  formatted = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  
+  // Step 6: Fix "i" to "I" when standalone
   formatted = formatted.replace(/\bi\b/g, 'I');
   
-  // Fix common contractions
-  const contractions = {
-    "i'm": "I'm",
-    "i'd": "I'd",
-    "i'll": "I'll",
-    "i've": "I've",
-    "don't": "don't",
-    "can't": "can't",
-    "won't": "won't",
-    "didn't": "didn't",
-    "wouldn't": "wouldn't",
-    "couldn't": "couldn't",
-    "shouldn't": "shouldn't"
-  };
-  
-  Object.entries(contractions).forEach(([wrong, right]) => {
-    formatted = formatted.replace(new RegExp(`\\b${wrong}\\b`, 'gi'), right);
+  // Step 7: Fix contractions (preserve initial capitalization)
+  Object.entries(CONTRACTIONS_MAP).forEach(([pattern, replacement]) => {
+    formatted = formatted.replace(new RegExp(`\\b${pattern}\\b`, 'gi'), (match) => {
+      if (match.charAt(0) === match.charAt(0).toUpperCase()) {
+        return replacement.charAt(0).toUpperCase() + replacement.slice(1);
+      }
+      return replacement;
+    });
   });
+  
+  // Step 8: Capitalize proper nouns and acronyms
+  ALWAYS_CAPITALIZE.forEach(word => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    formatted = formatted.replace(regex, (match) => {
+      if (['ai', 'api', 'url', 'html', 'css'].includes(word.toLowerCase())) {
+        return word.toUpperCase();
+      }
+      return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+    });
+  });
+  
+  // Step 9: Fix capitalization after sentence-ending punctuation
+  formatted = formatted.replace(/([.!?])\s+([a-z])/g, (match, punct, letter) => {
+    return punct + ' ' + letter.toUpperCase();
+  });
+  
+  // Step 10: Detect and add question marks for questions
+  const sentences = formatted.split(/(?<=[.!?])\s+/);
+  formatted = sentences.map(sentence => {
+    if (/[.!?]$/.test(sentence)) return sentence;
+    const firstWord = sentence.split(/\s+/)[0]?.toLowerCase();
+    if (firstWord && QUESTION_WORDS.includes(firstWord)) return sentence + '?';
+    if (/\b(right|correct|okay|ok|isn't it|aren't you|don't you|won't you|can you|could you|would you)\s*$/i.test(sentence)) {
+      return sentence + '?';
+    }
+    return sentence;
+  }).join(' ');
+  
+  // Step 11: Clean up double punctuation
+  formatted = formatted.replace(/([.!?]){2,}/g, '$1');
+  formatted = formatted.replace(/,{2,}/g, ',');
+  
+  // Step 12: Ensure proper sentence endings
+  if (!/[.!?]$/.test(formatted)) formatted += '.';
+  
+  // Step 13: Fix spacing around punctuation
+  formatted = formatted.replace(/\s+([,.])/g, '$1');
+  formatted = formatted.replace(/,(?!\s)/g, ', ');
+  formatted = formatted.replace(/\.(?!\s|$)/g, '. ');
   
   return formatted.trim();
 }
