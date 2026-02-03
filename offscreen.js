@@ -413,6 +413,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
   
+  if (message.type === 'REWRITE') {
+    console.log('[OFFSCREEN] REWRITE handler entered');
+    try {
+      rewriteText(message.text)
+        .then(result => sendResponse(result))
+        .catch(error => sendResponse({ success: false, error: error.message }));
+      return true;
+    } catch (e) {
+      console.error('[OFFSCREEN] REWRITE error:', e);
+      sendResponse({ success: false, error: e.message });
+      return false;
+    }
+  }
+  
   console.log('[OFFSCREEN] Unknown message type:', message.type);
   return false;
 });
