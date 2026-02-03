@@ -112,10 +112,10 @@ const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
 /**
  * Send a message to offscreen document with timeout
  * @param {object} message - Message to send (target will be added)
- * @param {number} timeout - Timeout in ms (default 2 minutes for transcription)
+ * @param {number} timeout - Timeout in ms (default 5 minutes for first-time model load)
  * @returns {Promise<object>} Response from offscreen
  */
-async function sendToOffscreen(message, timeout = 120000) {
+async function sendToOffscreen(message, timeout = 300000) {
   console.log('[SW] sendToOffscreen: Ensuring offscreen exists...');
   await ensureOffscreen();
   
@@ -123,27 +123,40 @@ async function sendToOffscreen(message, timeout = 120000) {
   const offscreenMessage = { ...message, target: 'offscreen' };
   console.log('[SW] sendToOffscreen: Sending message type:', message.type);
   
-  // Create promise with timeout
+  // Create promise with timeout - use settled flag to prevent race conditions
   return new Promise((resolve, reject) => {
+    let settled = false;
+    
     const timeoutId = setTimeout(() => {
-      console.error('[SW] sendToOffscreen: TIMEOUT after', timeout, 'ms');
-      reject(new Error(`Offscreen message timeout: ${message.type}`));
+      if (!settled) {
+        settled = true;
+        console.error('[SW] sendToOffscreen: TIMEOUT after', timeout, 'ms');
+        reject(new Error(`Offscreen message timeout: ${message.type}`));
+      }
     }, timeout);
     
     chrome.runtime.sendMessage(offscreenMessage)
       .then(response => {
-        clearTimeout(timeoutId);
-        console.log('[SW] sendToOffscreen: Got response:', response !== undefined ? 'defined' : 'undefined');
-        if (response === undefined) {
-          reject(new Error('No response from offscreen document'));
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+          console.log('[SW] sendToOffscreen: Got response:', response !== undefined ? 'defined' : 'undefined');
+          if (response === undefined) {
+            reject(new Error('No response from offscreen document'));
+          } else {
+            resolve(response);
+          }
         } else {
-          resolve(response);
+          console.log('[SW] sendToOffscreen: Response arrived after timeout, ignoring');
         }
       })
       .catch(error => {
-        clearTimeout(timeoutId);
-        console.error('[SW] sendToOffscreen: Error:', error);
-        reject(error);
+        if (!settled) {
+          settled = true;
+          clearTimeout(timeoutId);
+          console.error('[SW] sendToOffscreen: Error:', error);
+          reject(error);
+        }
       });
   });
 }
