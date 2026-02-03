@@ -1,0 +1,150 @@
+/* VibeCoding - Content Script Styles */
+/* Styles for floating mic buttons on input fields */
+
+/* Mic button container */
+.vibecoding-mic-btn {
+  position: absolute !important;
+  width: 24px !important;
+  height: 24px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  cursor: pointer !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4) !important;
+  transition: all 0.2s ease !important;
+  opacity: 0.7 !important;
+}
+
+.vibecoding-mic-btn:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6) !important;
+}
+
+.vibecoding-mic-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Recording state */
+.vibecoding-mic-btn.recording {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+  animation: vibecoding-pulse 1.5s ease-in-out infinite !important;
+  opacity: 1 !important;
+}
+
+/* Processing state */
+.vibecoding-mic-btn.processing {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+  animation: vibecoding-spin 1s linear infinite !important;
+  opacity: 1 !important;
+}
+
+/* Mic icon SVG */
+.vibecoding-mic-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  fill: white !important;
+}
+
+/* Pulse animation for recording */
+@keyframes vibecoding-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(231, 76, 60, 0);
+  }
+}
+
+/* Spin animation for processing */
+@keyframes vibecoding-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tooltip */
+.vibecoding-mic-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-radius: 4px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
+  margin-bottom: 4px;
+}
+
+.vibecoding-mic-btn:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Recording indicator overlay */
+.vibecoding-recording-overlay {
+  position: fixed !important;
+  top: 10px !important;
+  right: 10px !important;
+  padding: 8px 16px !important;
+  background: rgba(231, 76, 60, 0.95) !important;
+  color: white !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  border-radius: 20px !important;
+  z-index: 9999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  animation: vibecoding-slideIn 0.3s ease !important;
+}
+
+.vibecoding-recording-overlay .dot {
+  width: 8px !important;
+  height: 8px !important;
+  background: white !important;
+  border-radius: 50% !important;
+  animation: vibecoding-blink 1s ease-in-out infinite !important;
+}
+
+@keyframes vibecoding-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes vibecoding-slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Hide mic buttons on very small inputs */
+input[type="hidden"] + .vibecoding-mic-btn,
+input[type="checkbox"] + .vibecoding-mic-btn,
+input[type="radio"] + .vibecoding-mic-btn {
+  display: none !important;
+}

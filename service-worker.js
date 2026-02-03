@@ -75,6 +75,24 @@ async function saveSettings(newSettings) {
   }
 }
 
+// Handle keyboard shortcuts
+chrome.commands.onCommand.addListener(async (command) => {
+  console.log('Command received:', command);
+  
+  if (command === 'toggle-recording') {
+    // Get the active tab and send toggle message to content script
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      try {
+        await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_RECORDING' });
+      } catch (error) {
+        console.log('Could not send to content script:', error.message);
+        // Content script might not be loaded on this page (e.g., chrome:// pages)
+      }
+    }
+  }
+});
+
 // Initialize AI models
 async function initializeModels() {
   try {
@@ -253,6 +271,10 @@ async function handleMessage(message, sender) {
         message: message.message
       }).catch(() => {}); // Ignore if popup is closed
       return { success: true };
+    
+    case 'TRANSCRIBE_AUDIO':
+      // Handle transcription request from content script
+      return await handleTranscribeFromContentScript(message);
       
     default:
       return { success: false, error: 'Unknown message type' };
@@ -325,6 +347,39 @@ async function handleTranscribe(message) {
     
   } catch (error) {
     console.error('Transcription error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Handle transcription request from content script (floating mic buttons)
+async function handleTranscribeFromContentScript(message) {
+  try {
+    const { audioData, mimeType } = message;
+    
+    if (!audioData) {
+      return { success: false, error: 'No audio data provided' };
+    }
+    
+    console.log('Transcribing audio from content script...');
+    
+    // Ensure offscreen document is ready
+    await ensureOffscreen();
+    
+    // Use Moonshine for transcription (always, for content script requests)
+    const transcribedText = await transcribeWithMoonshine(audioData, mimeType);
+    
+    // Apply formatting
+    const formattedText = applyBasicFormatting(transcribedText);
+    
+    return {
+      success: true,
+      text: formattedText,
+      rawText: transcribedText,
+      model: 'moonshine'
+    };
+    
+  } catch (error) {
+    console.error('Content script transcription error:', error);
     return { success: false, error: error.message };
   }
 }
