@@ -82,10 +82,11 @@ function initWorker() {
 // Handle messages from the Moonshine worker
 function handleWorkerMessage(event) {
   const { type, ...data } = event.data;
+  console.log('[OFFSCREEN] Worker message:', type);
   
   switch (type) {
     case 'WORKER_READY':
-      console.log('Moonshine worker ready:', data.message);
+      console.log('[OFFSCREEN] Moonshine worker ready:', data.message);
       // Notify service worker that offscreen is ready
       chrome.runtime.sendMessage({ 
         type: 'OFFSCREEN_READY',
@@ -95,6 +96,7 @@ function handleWorkerMessage(event) {
       
     case 'LOADING':
     case 'LOADING_PROGRESS':
+      console.log('[OFFSCREEN] Loading progress:', data.progress || data.message);
       // Forward loading progress to service worker
       chrome.runtime.sendMessage({ 
         type: 'TRANSCRIPTION_PROGRESS',
@@ -120,11 +122,13 @@ function handleWorkerMessage(event) {
       break;
       
     case 'TRANSCRIPTION_COMPLETE':
+      console.log('[OFFSCREEN] Transcription complete! Success:', data.success, 'Text:', data.text?.substring(0, 50));
       // Reset idle timer after transcription
       resetIdleTimer();
       
       if (pendingTranscription) {
         if (data.success) {
+          console.log('[OFFSCREEN] Resolving pending transcription');
           pendingTranscription.resolve({
             success: true,
             text: data.text,
@@ -132,9 +136,12 @@ function handleWorkerMessage(event) {
             processingTime: data.processingTime
           });
         } else {
+          console.log('[OFFSCREEN] Rejecting pending transcription:', data.error);
           pendingTranscription.reject(new Error(data.error));
         }
         pendingTranscription = null;
+      } else {
+        console.warn('[OFFSCREEN] No pending transcription to resolve!');
       }
       break;
       
@@ -150,20 +157,27 @@ function handleWorkerMessage(event) {
 
 // Transcribe audio using the Moonshine worker
 async function transcribeAudio(audioData, sampleRate = 16000) {
+  console.log('[OFFSCREEN] transcribeAudio Step 1: Starting...');
+  console.log('[OFFSCREEN] Audio data length:', audioData?.length);
+  
   initWorker();
   
   if (!moonshineWorker) {
+    console.error('[OFFSCREEN] Worker not available!');
     throw new Error('Moonshine worker not available');
   }
+  
+  console.log('[OFFSCREEN] transcribeAudio Step 2: Worker ready');
   
   // Decode audio in offscreen document (has AudioContext access)
   // Workers don't have access to AudioContext/OfflineAudioContext
   let decodedAudio;
   try {
+    console.log('[OFFSCREEN] transcribeAudio Step 3: Decoding audio...');
     decodedAudio = await decodeBase64AudioToFloat32(audioData, sampleRate);
-    console.log(`Decoded audio: ${decodedAudio.length} samples at ${sampleRate}Hz`);
+    console.log('[OFFSCREEN] transcribeAudio Step 4: Decoded!', decodedAudio.length, 'samples');
   } catch (decodeError) {
-    console.error('Audio decode failed in offscreen:', decodeError);
+    console.error('[OFFSCREEN] Audio decode failed:', decodeError);
     throw new Error('Failed to decode audio: ' + decodeError.message);
   }
   
@@ -257,21 +271,35 @@ async function loadModel() {
 
 // Listen for messages from the service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.target !== 'offscreen') return;
+  console.log('[OFFSCREEN] Received message:', message.type, 'target:', message.target);
+  
+  if (message.target !== 'offscreen') {
+    console.log('[OFFSCREEN] Ignoring - not targeted at offscreen');
+    return;
+  }
   
   switch (message.type) {
     case 'TRANSCRIBE':
+      console.log('[OFFSCREEN] Processing TRANSCRIBE, audio length:', message.audioData?.length);
       transcribeAudio(message.audioData, message.sampleRate)
-        .then(result => sendResponse(result))
-        .catch(error => sendResponse({ success: false, error: error.message }));
+        .then(result => {
+          console.log('[OFFSCREEN] Transcription success, sending response');
+          sendResponse(result);
+        })
+        .catch(error => {
+          console.error('[OFFSCREEN] Transcription failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
       return true; // Keep channel open for async response
       
     case 'LOAD_MODEL':
+      console.log('[OFFSCREEN] Loading model...');
       loadModel();
       sendResponse({ success: true });
       return false;
       
     case 'PING':
+      console.log('[OFFSCREEN] Ping received, responding ready');
       sendResponse({ success: true, status: 'ready' });
       return false;
   }

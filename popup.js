@@ -448,19 +448,29 @@ class VibeCodingPopup {
   
   async transcribeAudio(audioBlob) {
     try {
+      console.log('[POPUP] Step 1: Converting blob to base64...');
+      console.log('[POPUP] Audio blob size:', audioBlob.size, 'bytes, type:', audioBlob.type);
+      
       // Convert blob to base64 for message passing
       const arrayBuffer = await audioBlob.arrayBuffer();
       const base64Audio = this.arrayBufferToBase64(arrayBuffer);
       
+      console.log('[POPUP] Step 2: Base64 length:', base64Audio.length);
+      console.log('[POPUP] Step 3: Sending TRANSCRIBE message to service worker...');
+      
+      const startTime = Date.now();
       const response = await chrome.runtime.sendMessage({
         type: 'TRANSCRIBE',
         audioData: base64Audio,
         mimeType: audioBlob.type
       });
       
+      console.log('[POPUP] Step 4: Got response after', Date.now() - startTime, 'ms');
+      console.log('[POPUP] Response:', JSON.stringify(response));
+      
       return response || { success: false, error: 'No response from service worker' };
     } catch (error) {
-      console.error('Transcription error:', error);
+      console.error('[POPUP] Transcription error:', error);
       return { success: false, error: error.message };
     }
   }

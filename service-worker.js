@@ -116,20 +116,24 @@ const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
  * @returns {Promise<object>} Response from offscreen
  */
 async function sendToOffscreen(message, timeout = 120000) {
+  console.log('[SW] sendToOffscreen: Ensuring offscreen exists...');
   await ensureOffscreen();
   
   // Add target marker for offscreen document
   const offscreenMessage = { ...message, target: 'offscreen' };
+  console.log('[SW] sendToOffscreen: Sending message type:', message.type);
   
   // Create promise with timeout
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
+      console.error('[SW] sendToOffscreen: TIMEOUT after', timeout, 'ms');
       reject(new Error(`Offscreen message timeout: ${message.type}`));
     }, timeout);
     
     chrome.runtime.sendMessage(offscreenMessage)
       .then(response => {
         clearTimeout(timeoutId);
+        console.log('[SW] sendToOffscreen: Got response:', response !== undefined ? 'defined' : 'undefined');
         if (response === undefined) {
           reject(new Error('No response from offscreen document'));
         } else {
@@ -138,6 +142,7 @@ async function sendToOffscreen(message, timeout = 120000) {
       })
       .catch(error => {
         clearTimeout(timeoutId);
+        console.error('[SW] sendToOffscreen: Error:', error);
         reject(error);
       });
   });
@@ -297,7 +302,12 @@ async function handleTranscribe(message) {
   try {
     const { audioData, mimeType } = message;
     
+    console.log('[SW] handleTranscribe Step 1: Received audio');
+    console.log('[SW] Audio data length:', audioData?.length || 0);
+    console.log('[SW] MIME type:', mimeType);
+    
     if (!audioData) {
+      console.error('[SW] No audio data provided!');
       return { success: false, error: 'No audio data provided' };
     }
     
@@ -309,15 +319,19 @@ async function handleTranscribe(message) {
       };
     }
     
-    console.log(`Transcribing audio with ${currentModel}...`);
+    console.log('[SW] handleTranscribe Step 2: Using model:', currentModel);
     
     // Ensure offscreen document is ready
+    console.log('[SW] handleTranscribe Step 3: Ensuring offscreen document...');
     await ensureOffscreen();
+    console.log('[SW] handleTranscribe Step 4: Offscreen ready');
     
     let transcribedText;
     
     if (currentModel === 'moonshine') {
+      console.log('[SW] handleTranscribe Step 5: Calling transcribeWithMoonshine...');
       transcribedText = await transcribeWithMoonshine(audioData, mimeType);
+      console.log('[SW] handleTranscribe Step 6: Transcription result:', transcribedText);
     } else {
       transcribedText = await transcribeWithWhisper(audioData, mimeType);
     }
@@ -329,7 +343,7 @@ async function handleTranscribe(message) {
     };
     
   } catch (error) {
-    console.error('Transcription error:', error);
+    console.error('[SW] handleTranscribe ERROR:', error);
     return { success: false, error: error.message };
   }
 }
@@ -369,20 +383,27 @@ async function handleTranscribeFromContentScript(message) {
 
 // Transcription function using Moonshine via offscreen document
 async function transcribeWithMoonshine(audioData, mimeType) {
-  console.log('Using Moonshine Tiny for transcription via offscreen document');
+  console.log('[SW] transcribeWithMoonshine Step 1: Preparing to send to offscreen');
+  console.log('[SW] Audio data length to send:', audioData.length);
   
   // Send transcription request to offscreen document using helper
+  console.log('[SW] transcribeWithMoonshine Step 2: Calling sendToOffscreen...');
+  const startTime = Date.now();
+  
   const response = await sendToOffscreen({
     type: 'TRANSCRIBE',
     audioData: audioData,
     sampleRate: 16000
   });
   
+  console.log('[SW] transcribeWithMoonshine Step 3: Got response after', Date.now() - startTime, 'ms');
+  console.log('[SW] Response:', JSON.stringify(response));
+  
   if (!response || !response.success) {
     throw new Error(response?.error || 'Transcription failed');
   }
   
-  console.log(`Transcription completed in ${response.processingTime}ms`);
+  console.log('[SW] transcribeWithMoonshine Step 4: Success! Text:', response.text);
   return response.text;
 }
 
