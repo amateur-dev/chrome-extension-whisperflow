@@ -43,14 +43,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["content.css"]
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": ["assets/mic-icon.svg"],
-      "matches": ["<all_urls>"]
+      "js": ["content.js"]
     }
   ],
   "icons": {

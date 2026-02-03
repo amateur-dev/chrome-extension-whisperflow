@@ -243,10 +243,6 @@ async function decodeBase64AudioToFloat32(base64Audio, targetSampleRate = 16000)
     throw new Error('Failed to decode audio format. Try a shorter recording.');
   }
 }
-      data: { audioData, sampleRate }
-    });
-  });
-}
 
 // Load the model proactively
 async function loadModel() {
