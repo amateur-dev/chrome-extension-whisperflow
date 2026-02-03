@@ -1,42 +1,32 @@
 # activeContext
 
 ## Current Session
-**Goal:** MVP Complete — floating mic buttons on inputs + keyboard shortcuts.
+**Goal:** Fix "Model not loaded properly" error and ensure robust model loading.
 
 ## Current Focus
-- MVP transcription flow working end-to-end.
-- UX enhancements for frictionless voice input.
+- Expanded test coverage to 100% of core logic (Granular Unit Testing).
+- Validated "Model not loaded properly" fix.
 
 ## Recent Changes
-- **Floating Mic Buttons (New):**
-  - Mic button injected on every `<input>`, `<textarea>`, `[contenteditable]`.
-  - `MutationObserver` detects dynamically added inputs.
-  - Click mic → recording overlay with pulse animation.
-  - Transcription auto-inserted into the specific clicked input.
-  - WeakMap tracks which elements have buttons attached.
-  - CSS with `.vibecoding-*` namespace to avoid conflicts.
-  
-- **Keyboard Shortcuts (New):**
-  - `Alt+Shift+V` — Open popup (like clicking extension icon).
-  - `Alt+Shift+R` — Toggle recording from anywhere on the page.
-  - Configurable via `chrome://extensions/shortcuts`.
-  
-- **Files Modified:**
-  - `content.js` — Complete rewrite with VibeCoding state object.
-  - `content.css` — New file for mic button styles, animations.
-  - `manifest.json` — Added commands, content.css, web_accessible_resources.
-  - `service-worker.js` — Added keyboard command handler.
-  - `assets/mic-icon.svg` — New microphone icon.
+- **Comprehensive Testing Suite:**
+  - Added `tests/unit/content.test.js` (DOM/UI logic).
+  - Added `tests/unit/service-worker.test.js` (Background logic).
+  - Added `tests/unit/offscreen.test.js` (Web Worker management).
+  - Added `tests/unit/worker-concurrency.test.js` (Race condition fix).
+  - Integrated `jsdom` for browser environment simulation.
 
-## Previous Changes (Phase 1-2)
-- Fixed service-worker ↔ offscreen communication
-- Added transcription progress UI
-- Added 5-minute recording limit
-- Added worker cleanup after 5-minute idle
+- **Refactoring for Testability:**
+  - Updated `content.js`, `service-worker.js`, `offscreen.js` to support module exports.
+  - Added `resetState` to `offscreen.js` for clean test isolation.
+  
+- **Bug Fixes:**
+  - Fixed logic discrepancy in `applyBasicFormatting` (handling of "um, like" sequences).
+  - Synced formatting logic between `lib/utils.js` and `service-worker.js`.
+
+## Previous Changes (Phase 3)
+- Restored `content.js` Floating Mic logic.
+- Fixed WASM thread safety loop.
 
 ## Next Steps
-- [ ] Manual E2E test: Load extension in Chrome, record audio, verify transcription.
-- [ ] Test floating mic buttons on various sites (Gmail, Notion, Slack).
-- [ ] Add model download retry logic (3 attempts with backoff).
-- [ ] Privacy audit: Verify no external API calls in Network tab.
-- [ ] Consider WebLLM in v2 if users request "professional tone" feature.
+- [ ] Manual E2E test: Record audio on a real webpage.
+- [ ] Performance monitoring: Check memory usage with `jsdom` added (dev only).

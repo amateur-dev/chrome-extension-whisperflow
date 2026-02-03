@@ -36,6 +36,13 @@
   - [x] Keyboard shortcuts: Alt+Shift+V (popup), Alt+Shift+R (record).
 - [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
 
+## Post-Launch Stability (Phase 4)
+- [x] Fix "Model not loaded properly" race condition (Promise-based loading lock).
+- [x] Fix WASM backend causing browser hang (threads=1).
+- [x] Comprehensive Unit Test Suite (Content, Background, Offscreen, Workers).
+- [x] Fix Service Worker syntax errors.
+- [x] Fix Manifest CSP for WASM workers.
+
 ## Known Blockers
 - None for MVP.
 
