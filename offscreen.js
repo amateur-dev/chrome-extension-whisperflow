@@ -13,43 +13,14 @@
 let moonshineWorker = null;
 let pendingTranscription = null;
 
-// Idle timeout for worker cleanup (5 minutes)
-const WORKER_IDLE_TIMEOUT = 5 * 60 * 1000;
-let workerIdleTimer = null;
-
-/**
- * Reset the idle timer - called after each transcription
- */
-function resetIdleTimer() {
-  if (workerIdleTimer) {
-    clearTimeout(workerIdleTimer);
-  }
-  workerIdleTimer = setTimeout(() => {
-    console.log('Worker idle timeout - terminating to free memory');
-    terminateWorker();
-  }, WORKER_IDLE_TIMEOUT);
-}
-
-/**
- * Terminate the worker to free memory
- */
-function terminateWorker() {
-  if (moonshineWorker) {
-    moonshineWorker.terminate();
-    moonshineWorker = null;
-    console.log('Moonshine worker terminated');
-  }
-  if (workerIdleTimer) {
-    clearTimeout(workerIdleTimer);
-    workerIdleTimer = null;
-  }
-}
+// Keep model loaded - no idle timeout
+// WASM compilation is expensive, so we keep the worker alive permanently
+let modelPreloaded = false;
 
 // Initialize the Moonshine worker
 function initWorker() {
   if (moonshineWorker) {
-    resetIdleTimer(); // Reset timer on reuse
-    return;
+    return; // Already initialized
   }
   
   try {
@@ -70,10 +41,14 @@ function initWorker() {
       }
     };
     
-    // Start idle timer
-    resetIdleTimer();
-    
     console.log('Moonshine worker initialized');
+    
+    // Pre-load model immediately to avoid delay on first transcription
+    if (!modelPreloaded) {
+      console.log('Pre-loading Moonshine model...');
+      moonshineWorker.postMessage({ type: 'LOAD_MODEL' });
+      modelPreloaded = true;
+    }
   } catch (error) {
     console.error('Failed to initialize Moonshine worker:', error);
   }
@@ -123,8 +98,6 @@ function handleWorkerMessage(event) {
       
     case 'TRANSCRIPTION_COMPLETE':
       console.log('[OFFSCREEN] Transcription complete! Success:', data.success, 'Text:', data.text?.substring(0, 50));
-      // Reset idle timer after transcription
-      resetIdleTimer();
       
       if (pendingTranscription) {
         if (data.success) {
