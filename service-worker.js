@@ -75,24 +75,6 @@ async function saveSettings(newSettings) {
   }
 }
 
-// Handle keyboard shortcuts
-chrome.commands.onCommand.addListener(async (command) => {
-  console.log('Command received:', command);
-  
-  if (command === 'toggle-recording') {
-    // Get the active tab and send toggle message to content script
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id) {
-      try {
-        await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_RECORDING' });
-      } catch (error) {
-        console.log('Could not send to content script:', error.message);
-        // Content script might not be loaded on this page (e.g., chrome:// pages)
-      }
-    }
-  }
-});
-
 // Initialize AI models
 async function initializeModels() {
   try {

@@ -19,13 +19,6 @@
         "mac": "Alt+Shift+V"
       },
       "description": "Open VibeCoding popup"
-    },
-    "toggle-recording": {
-      "suggested_key": {
-        "default": "Alt+Shift+R",
-        "mac": "Alt+Shift+R"
-      },
-      "description": "Start/Stop recording"
     }
   },
   "action": {
