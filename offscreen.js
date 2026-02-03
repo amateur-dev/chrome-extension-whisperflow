@@ -81,7 +81,10 @@ function handleWorkerMessage(event) {
       break;
       
     case 'MODEL_LOADED':
-      console.log('Model loaded:', data.success ? 'success' : 'failed');
+      console.log('[OFFSCREEN] Model loaded:', data.success ? 'success' : 'FAILED');
+      if (!data.success) {
+        console.error('[OFFSCREEN] Model load error:', data.error);
+      }
       chrome.runtime.sendMessage({ 
         type: 'MODEL_LOADED',
         success: data.success,
