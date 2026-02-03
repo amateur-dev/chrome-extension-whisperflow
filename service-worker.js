@@ -38,12 +38,12 @@ let settings = {
 
 // Initialize on service worker startup
 self.addEventListener('install', () => {
-  console.log('VibeCoding service worker installed');
+  console.log('[SW] Service Worker Installed');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', () => {
-  console.log('VibeCoding service worker activated');
+  console.log('[SW] Service Worker Activated');
   loadSettings().then(() => initializeModels());
 });
 
@@ -56,8 +56,9 @@ async function loadSettings() {
       currentModel = settings.sttModel || 'moonshine';
       whisperDownloaded = settings.whisperDownloaded || false;
     }
+    console.log('[SW] Settings loaded:', settings);
   } catch (error) {
-    console.log('Failed to load settings:', error);
+    console.error('[SW] Failed to load settings:', error);
   }
 }
 
@@ -78,12 +79,13 @@ async function saveSettings(newSettings) {
 // Initialize AI models
 async function initializeModels() {
   try {
-    console.log('Initializing VibeCoding models...');
-    console.log(`Current model: ${currentModel}`);
+    console.log('[SW] Initializing models...');
+    console.log(`[SW] Current model: ${currentModel}`);
     
     // Ensure offscreen document is created for AI inference
     await ensureOffscreen();
     
+    console.log('[SW] Offscreen ensured. Checking readiness...');
     // Moonshine is "available" (offscreen ready) but model may not be downloaded yet
     // The actual model download happens on first transcription
     moonshineReady = true;
@@ -175,6 +177,7 @@ async function pingOffscreen() {
 }
 
 async function ensureOffscreen() {
+  console.log('[SW] ensureOffscreen called');
   // Check if offscreen document already exists
   const existingContexts = await chrome.runtime.getContexts({
     contextTypes: ['OFFSCREEN_DOCUMENT'],
@@ -182,23 +185,27 @@ async function ensureOffscreen() {
   });
   
   if (existingContexts.length > 0) {
+    console.log('[SW] Offscreen document already exists');
     offscreenCreated = true;
     return;
   }
   
   // Create offscreen document
   try {
+    console.log('[SW] Creating offscreen document...');
     await chrome.offscreen.createDocument({
       url: OFFSCREEN_DOCUMENT_PATH,
       reasons: ['WORKERS'],
       justification: 'Run Moonshine AI model in Web Worker for speech-to-text transcription'
     });
     offscreenCreated = true;
-    console.log('Offscreen document created');
+    console.log('[SW] Offscreen document created successfully');
   } catch (error) {
     if (error.message?.includes('already exists')) {
       offscreenCreated = true;
+      console.log('[SW] Offscreen document existed (caught error)');
     } else {
+      console.error('[SW] Failed to create offscreen document:', error);
       throw error;
     }
   }
@@ -469,8 +476,23 @@ async function handleRewrite(message) {
 
 // Text rewriting function (WebLLM integration point)
 async function rewriteWithLLM(text) {
-  // Apply comprehensive text formatting
-  return applyBasicFormatting(text);
+  try {
+    console.log('[SW] rewriteWithLLM: Sending to offscreen...');
+    const response = await sendToOffscreen({
+      type: 'REWRITE',
+      text: text
+    });
+    
+    if (response && response.success) {
+      return response.text;
+    } else {
+      console.warn('[SW] WebLLM rewrite failed, falling back to basic formatting:', response?.error);
+      return applyBasicFormatting(text);
+    }
+  } catch (error) {
+    console.error('[SW] WebLLM communication error:', error);
+    return applyBasicFormatting(text);
+  }
 }
 
 /**
@@ -528,6 +550,8 @@ function applyBasicFormatting(text) {
   hesitationPatterns.forEach(pattern => {
     formatted = formatted.replace(pattern, ' ');
   });
+  
+  formatted = formatted.trim();
   
   // Step 2: Remove discourse markers as fillers
   formatted = formatted.replace(/^like,?\s+/gi, '');
@@ -609,4 +633,15 @@ function applyBasicFormatting(text) {
 }
 
 // Initialize models on startup
-loadSettings().then(() => initializeModels());
+// Only run if not in test environment (exports check)
+if (typeof module === 'undefined' || !module.exports) {
+  loadSettings().then(() => initializeModels());
+}
+
+export { 
+  loadSettings, 
+  saveSettings, 
+  applyBasicFormatting, 
+  initializeModels, // Export for verified testing
+  MODELS
+};
