@@ -24,4 +24,8 @@
   - `Worker.postMessage` for Background <-> AI Workers (Moonshine, Whisper, WebLLM)
 
 ## Testing
-- **Strategy:** Manual "Vibe Checks" (E2E)
+- **Framework:** Vitest (ES Module native, Node.js)
+- **Unit Tests:** `npm test` — Pure function tests (utils, formatting)
+- **Integration Tests:** `npm run test:integration` — Real model transcription with audio fixtures
+- **All Tests:** `npm run test:all`
+- **Manual Checks:** E2E "Vibe Checks" for browser-specific functionality

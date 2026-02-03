@@ -30,7 +30,9 @@ You are the Lead Architect for the **VibeCoding** Extension. You prioritize priv
 
 ### Implementation
 - **Test-Driven / Vibe-Driven:**
-  - Since this is a browser extension, automated TDD is hard.
+  - **Unit tests:** `npm test` for pure functions (utils, formatting).
+  - **Integration tests:** `npm run test:integration` for real model transcription.
+  - **Manual Vibe Checks:** For browser-specific features (extension UI, content injection).
   - **Requirement:** Create a "Checklist" in `docs/PLAN.md` before coding complex features.
 - **Code Quality:**
   - Use JSDoc for types.

@@ -1,0 +1,34 @@
+feat(tests): add programmatic testing infrastructure with Vitest
+
+## What
+- Add Vitest test framework with ES Module support
+- Create 30 unit tests for lib/utils.js pure functions
+- Create 4 integration tests with real Moonshine model transcription
+- Add Chrome API mocks for testing storage, runtime, tabs
+- Add audio fixtures infrastructure (16kHz WAV format)
+
+## Why
+- Enable automated testing to catch regressions early
+- Validate transcription pipeline works correctly with real audio
+- Reduce reliance on manual 'Vibe Checks' for core functionality
+- Integration tests verify the same Transformers.js library used in production
+
+## Files Added
+- package.json: npm config with vitest + @huggingface/transformers
+- vitest.config.js: ES Module configuration
+- tests/setup.js: Global test setup with Chrome mocks, btoa/atob polyfills
+- tests/mocks/chrome.js: Comprehensive chrome.* API stubs
+- tests/unit/utils.test.js: 30 tests for base64, formatting, debounce, storage
+- tests/integration/transcription.test.js: Real model transcription tests
+- tests/fixtures/: Audio files and manifest for test data
+
+## Documentation Updated
+- docs/PLAN.md: Added Phase 0 (Testing Infrastructure) - all complete
+- docs/RULES.md: Updated testing section with npm commands
+- docs/TECH_STACK.md: Added testing framework details
+- docs/memory-bank/*: Updated progress, techContext, systemPatterns, activeContext
+
+## Test Commands
+- npm test: Unit tests only (~1s)
+- npm run test:integration: Real model transcription (~9s)
+- npm run test:all: Full suite (34 tests passing)

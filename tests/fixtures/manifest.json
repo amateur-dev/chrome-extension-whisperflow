@@ -1,0 +1,36 @@
+{
+  "fixtures": [
+    {
+      "id": "extension-test-voice-note",
+      "file": "Extension Test Voice Note 16kHz.wav",
+      "originalFile": "Extension Test Voice Note.wav",
+      "duration": "~74s",
+      "description": "Voice recording about the digital revolution and voice-to-text technology",
+      "expectedKeywords": [
+        "digital",
+        "revolution",
+        "communicate",
+        "voice",
+        "text",
+        "technology",
+        "machine learning",
+        "transcribe",
+        "accents",
+        "homophones",
+        "punctuation",
+        "extension",
+        "Gmail",
+        "Notion",
+        "Slack",
+        "LinkedIn",
+        "Google Docs"
+      ],
+      "transcript": "Extension Test Voice Note Transcript.txt"
+    }
+  ],
+  "notes": {
+    "format": "16kHz mono WAV (16-bit PCM) recommended",
+    "conversion": "ffmpeg -i input.mp3 -ar 16000 -ac 1 output.wav",
+    "matching": "Use keyword containment, not exact match (ASR output varies)"
+  }
+}

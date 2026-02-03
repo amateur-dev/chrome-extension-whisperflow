@@ -6,7 +6,7 @@ const MODELS = {
   moonshine: {
     id: 'onnx-community/moonshine-tiny-ONNX',
     name: 'Moonshine Tiny',
-    size: '~20-44 MB',
+    size: '~50 MB',
     params: '27M',
     license: 'MIT',
     url: 'https://huggingface.co/onnx-community/moonshine-tiny-ONNX'
@@ -23,11 +23,12 @@ const MODELS = {
 
 // State
 let isReady = false;
-let moonshineReady = true; // Default model, always ready in demo
+let moonshineReady = false;
 let whisperReady = false;
 let whisperDownloaded = false;
 let llmReady = false;
 let currentModel = 'moonshine'; // Default to Moonshine
+let offscreenCreated = false;
 
 // Settings storage
 let settings = {
@@ -80,7 +81,10 @@ async function initializeModels() {
     console.log('Initializing VibeCoding models...');
     console.log(`Current model: ${currentModel}`);
     
-    // Moonshine is always ready (default, bundled)
+    // Ensure offscreen document is created for AI inference
+    await ensureOffscreen();
+    
+    // Moonshine becomes ready once offscreen is created
     moonshineReady = true;
     
     // Whisper is ready only if downloaded
@@ -101,8 +105,44 @@ async function initializeModels() {
   }
 }
 
+// Offscreen document management
+const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
+
+async function ensureOffscreen() {
+  // Check if offscreen document already exists
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT'],
+    documentUrls: [chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH)]
+  });
+  
+  if (existingContexts.length > 0) {
+    offscreenCreated = true;
+    return;
+  }
+  
+  // Create offscreen document
+  try {
+    await chrome.offscreen.createDocument({
+      url: OFFSCREEN_DOCUMENT_PATH,
+      reasons: ['WORKERS'],
+      justification: 'Run Moonshine AI model in Web Worker for speech-to-text transcription'
+    });
+    offscreenCreated = true;
+    console.log('Offscreen document created');
+  } catch (error) {
+    if (error.message?.includes('already exists')) {
+      offscreenCreated = true;
+    } else {
+      throw error;
+    }
+  }
+}
+
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Ignore messages meant for offscreen document
+  if (message.target === 'offscreen') return;
+  
   handleMessage(message, sender).then(sendResponse);
   return true; // Keep message channel open for async response
 });
@@ -142,6 +182,22 @@ async function handleMessage(message, sender) {
       
     case 'REWRITE':
       return await handleRewrite(message);
+    
+    // Messages from offscreen document
+    case 'OFFSCREEN_READY':
+      console.log('Offscreen document ready');
+      moonshineReady = true;
+      isReady = true;
+      return { success: true };
+      
+    case 'MODEL_LOADED':
+      console.log('Model loaded in offscreen:', message.success);
+      return { success: true };
+      
+    case 'TRANSCRIPTION_PROGRESS':
+      // Could forward to popup if needed
+      console.log('Transcription progress:', message.message);
+      return { success: true };
       
     default:
       return { success: false, error: 'Unknown message type' };
@@ -195,8 +251,8 @@ async function handleTranscribe(message) {
     
     console.log(`Transcribing audio with ${currentModel}...`);
     
-    // Simulate transcription delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Ensure offscreen document is ready
+    await ensureOffscreen();
     
     let transcribedText;
     
@@ -218,21 +274,24 @@ async function handleTranscribe(message) {
   }
 }
 
-// Transcription function (Moonshine ONNX integration point)
+// Transcription function using Moonshine via offscreen document
 async function transcribeWithMoonshine(audioData, mimeType) {
-  // TODO: In production, integrate Moonshine ONNX model here
-  // Model: onnx-community/moonshine-tiny-ONNX
-  // URL: https://huggingface.co/onnx-community/moonshine-tiny-ONNX
+  console.log('Using Moonshine Tiny for transcription via offscreen document');
   
-  // The actual implementation would:
-  // 1. Load the Moonshine ONNX model using ONNX Runtime Web
-  // 2. Convert audio to the required format
-  // 3. Run inference
-  // 4. Return transcribed text
+  // Send transcription request to offscreen document
+  const response = await chrome.runtime.sendMessage({
+    target: 'offscreen',
+    type: 'TRANSCRIBE',
+    audioData: audioData,
+    sampleRate: 16000
+  });
   
-  // For demo purposes, return a sample transcription
-  console.log('Using Moonshine Tiny for transcription');
-  return "Thanks for reaching out. I'd love to chat about this tomorrow afternoon if that works for you.";
+  if (!response.success) {
+    throw new Error(response.error || 'Transcription failed');
+  }
+  
+  console.log(`Transcription completed in ${response.processingTime}ms`);
+  return response.text;
 }
 
 // Transcription function (Whisper.cpp integration point)

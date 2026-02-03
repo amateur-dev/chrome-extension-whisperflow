@@ -1,5 +1,0 @@
-# .cursorrules
-
-# Cursor behavior rules (kept intentionally short)
-
-Prefer concise code outputs.  Show unified diffs for edits. Read `docs/memory-bank/` before large changes.
