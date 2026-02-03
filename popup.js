@@ -66,6 +66,32 @@ class VibeCodingPopup {
     this.bindEvents();
     this.checkModelStatus();
     this.updateSettingsUI();
+    
+    // Check if we're in a tab (vs popup) - affects microphone permission behavior
+    this.isInTab = window.location.search.includes('tab=true');
+  }
+  
+  /**
+   * Check microphone permission status
+   * @returns {Promise<string>} 'granted', 'denied', or 'prompt'
+   */
+  async checkMicrophonePermission() {
+    try {
+      const result = await navigator.permissions.query({ name: 'microphone' });
+      return result.state;
+    } catch (e) {
+      // permissions.query may not support 'microphone' in all browsers
+      return 'prompt';
+    }
+  }
+  
+  /**
+   * Open the extension in a new tab (for reliable permission prompt)
+   */
+  openInTab() {
+    const url = chrome.runtime.getURL('popup.html?tab=true');
+    chrome.tabs.create({ url });
+    window.close(); // Close the popup
   }
   
   bindEvents() {
@@ -157,6 +183,36 @@ class VibeCodingPopup {
   
   async startRecording() {
     try {
+      // Check permission status first
+      const permissionState = await this.checkMicrophonePermission();
+      console.log('Microphone permission state:', permissionState);
+      
+      // If permission is denied and we're in popup, offer to open in tab
+      if (permissionState === 'denied' && !this.isInTab) {
+        this.showError('Microphone permission was denied. Click below to open in a new tab where you can grant permission.');
+        // Add a button to open in tab
+        setTimeout(() => {
+          const errorScreen = this.screens.error;
+          if (errorScreen && !errorScreen.querySelector('.open-tab-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary open-tab-btn';
+            btn.textContent = '🔓 Open in Tab to Enable Mic';
+            btn.style.marginTop = '10px';
+            btn.onclick = () => this.openInTab();
+            errorScreen.appendChild(btn);
+          }
+        }, 100);
+        return;
+      }
+      
+      // First check if we can enumerate devices (tests permission state)
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasAudioInput = devices.some(d => d.kind === 'audioinput');
+      
+      if (!hasAudioInput) {
+        throw new Error('No microphone detected');
+      }
+      
       // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -203,7 +259,42 @@ class VibeCodingPopup {
       
     } catch (error) {
       console.error('Error starting recording:', error);
-      this.showError('Microphone access denied. Please enable microphone permission.');
+      
+      // Provide specific error messages
+      let errorMsg = 'Microphone access denied. ';
+      let showOpenInTab = false;
+      
+      if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+        if (!this.isInTab) {
+          errorMsg = 'Chrome extensions need microphone permission granted in a full tab. Click below to open in a new tab.';
+          showOpenInTab = true;
+        } else {
+          errorMsg += 'Please allow microphone access when prompted. You may need to check Chrome Settings → Privacy & Security → Site Settings → Microphone.';
+        }
+      } else if (error.name === 'NotFoundError' || error.message.includes('No microphone')) {
+        errorMsg = 'No microphone detected. Please connect a microphone and try again.';
+      } else if (error.name === 'NotReadableError') {
+        errorMsg = 'Microphone is in use by another app. Please close other apps using the microphone.';
+      } else {
+        errorMsg += error.message || 'Please check your microphone settings.';
+      }
+      
+      this.showError(errorMsg);
+      
+      // Add "Open in Tab" button for permission errors when in popup
+      if (showOpenInTab) {
+        setTimeout(() => {
+          const errorScreen = this.screens.error;
+          if (errorScreen && !errorScreen.querySelector('.open-tab-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-primary open-tab-btn';
+            btn.textContent = '🔓 Open in Tab to Enable Mic';
+            btn.style.marginTop = '10px';
+            btn.onclick = () => this.openInTab();
+            errorScreen.appendChild(btn);
+          }
+        }, 100);
+      }
     }
   }
   
