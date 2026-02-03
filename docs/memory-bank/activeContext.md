@@ -1,26 +1,32 @@
 # activeContext
 
 ## Current Session
-**Goal:** Improve text formatting without LLM overhead — comprehensive basic formatting.
+**Goal:** MVP Complete — floating mic buttons on inputs + keyboard shortcuts.
 
 ## Current Focus
 - MVP transcription flow working end-to-end.
-- Text output quality via rule-based formatting (no LLM).
+- UX enhancements for frictionless voice input.
 
 ## Recent Changes
-- **Enhanced `applyBasicFormatting()` (Phase 3 alternative):**
-  - Removes hesitation markers: um, uh, er, ah, hmm, hm
-  - Removes discourse fillers: like, you know, I mean, basically, actually, so, anyway
-  - Removes repeated words: "the the" → "the"
-  - Auto-capitalizes 30+ proper nouns (Gmail, Slack, Notion, days, months)
-  - Uppercases 5 known acronyms (AI, API, URL, HTML, CSS)
-  - Detects questions via 25 question words (what, how, can, etc.)
-  - Handles tag questions (right?, correct?, isn't it?)
-  - Normalizes 40+ contractions with case preservation
-  - Fixes spacing around punctuation
-  - Removes duplicate punctuation marks
-- **45 unit tests** covering all formatting edge cases.
-- **Synced service-worker.js** with same improved formatting logic.
+- **Floating Mic Buttons (New):**
+  - Mic button injected on every `<input>`, `<textarea>`, `[contenteditable]`.
+  - `MutationObserver` detects dynamically added inputs.
+  - Click mic → recording overlay with pulse animation.
+  - Transcription auto-inserted into the specific clicked input.
+  - WeakMap tracks which elements have buttons attached.
+  - CSS with `.vibecoding-*` namespace to avoid conflicts.
+  
+- **Keyboard Shortcuts (New):**
+  - `Alt+Shift+V` — Open popup (like clicking extension icon).
+  - `Alt+Shift+R` — Toggle recording from anywhere on the page.
+  - Configurable via `chrome://extensions/shortcuts`.
+  
+- **Files Modified:**
+  - `content.js` — Complete rewrite with VibeCoding state object.
+  - `content.css` — New file for mic button styles, animations.
+  - `manifest.json` — Added commands, content.css, web_accessible_resources.
+  - `service-worker.js` — Added keyboard command handler.
+  - `assets/mic-icon.svg` — New microphone icon.
 
 ## Previous Changes (Phase 1-2)
 - Fixed service-worker ↔ offscreen communication
@@ -30,6 +36,7 @@
 
 ## Next Steps
 - [ ] Manual E2E test: Load extension in Chrome, record audio, verify transcription.
+- [ ] Test floating mic buttons on various sites (Gmail, Notion, Slack).
 - [ ] Add model download retry logic (3 attempts with backoff).
 - [ ] Privacy audit: Verify no external API calls in Network tab.
 - [ ] Consider WebLLM in v2 if users request "professional tone" feature.

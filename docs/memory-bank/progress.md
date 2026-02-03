@@ -1,7 +1,7 @@
 # progress
 
-## Project Status: MVP Nearly Complete
-**Estimated Completion:** ~90% (Core transcription + formatting complete)
+## Project Status: MVP Complete ✅
+**Estimated Completion:** 100% (Core transcription + formatting + UX enhancements)
 
 ## Milestones
 - [x] **Project Scaffold:** Manifest, Popup, Background script created.
@@ -15,6 +15,7 @@
 - [x] **Service Worker Hub:**
   - [x] `sendToOffscreen()` helper with timeout.
   - [x] Progress message forwarding to popup.
+  - [x] Keyboard shortcut command handling.
 - [x] **Audio Capture:** `MediaRecorder` with 5-min limit.
 - [x] **Moonshine Integration:**
   - [x] Full Transformers.js pipeline in `moonshine-worker.js`.
@@ -27,6 +28,12 @@
   - [x] Question detection, contraction normalization.
   - [x] WebLLM skipped for MVP — basic formatting sufficient.
 - [x] **Text Injection:** `content.js` handles rich editors.
+- [x] **UX Enhancements:**
+  - [x] Floating mic buttons on all inputs/textareas.
+  - [x] MutationObserver for dynamically added inputs.
+  - [x] Recording overlay with pulse animation.
+  - [x] Auto-paste transcription into target input.
+  - [x] Keyboard shortcuts: Alt+Shift+V (popup), Alt+Shift+R (record).
 - [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
 
 ## Known Blockers
