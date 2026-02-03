@@ -34,7 +34,7 @@
   - [x] Recording overlay with pulse animation.
   - [x] Auto-paste transcription into target input.
   - [x] Keyboard shortcuts: Alt+Shift+V (popup), Alt+Shift+R (record).
-- [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
+- [x] **Whisper Integration:** Replaced Moonshine with `Xenova/whisper-tiny` for better accuracy.
 
 ## Post-Launch Stability (Phase 4)
 - [x] Fix "Model not loaded properly" race condition.

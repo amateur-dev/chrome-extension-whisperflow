@@ -15,9 +15,9 @@
 - **UX Fixes:**
   - **Timeout:** Reduced `offscreen.js` rewrite timeout from 120s -> 5s.
   - **UI Clutter:** Updated `popup.js` to hide "Original" box if identical to "Formatted".
-- **Previous Fixes:**
-  - Resolved WASM loading (local bundle).
-  - Fixed WebLLM Worker communication.
+- **Verification:**
+  - Added `tests/unit/popup_ui.test.js` to verify UI logic.
+  - Fixed test environment issues (mock DOM). All tests passing.
 
 ## Next Steps
 - [ ] Manual E2E test: Record audio -> Transcribe (Whisper) -> Format -> Check UI.
