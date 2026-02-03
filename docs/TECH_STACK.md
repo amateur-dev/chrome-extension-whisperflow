@@ -25,10 +25,11 @@
 
 ## Testing
 - **Framework:** Vitest (ES Module native, Node.js)
-- **Unit Tests:** `npm test` — 45 tests for pure functions (utils, formatting)
-- **Integration Tests:** `npm run test:integration` — Real model transcription with audio fixtures
-- **All Tests:** `npm run test:all` — 49 tests total
-- **Manual Checks:** E2E "Vibe Checks" for browser-specific functionality
+- **Environment:** JSDOM (for DOM-dependent unit tests)
+- **Unit Tests:** `npm test` — Core logic, Content Scripts, Service Worker, Offscreen.
+- **Integration Tests:** `npm run test:integration` — Real model transcription with audio fixtures.
+- **Test Count:** ~60 tests total.
+- **Manual Checks:** E2E "Vibe Checks" for browser-specific functionality.
 
 ## UX Features
 - **Floating Mic Buttons:** Injected on `<input>`, `<textarea>`, `[contenteditable]`

@@ -56,9 +56,9 @@ VibeCoding operates entirely within the browser sandbox using a multi-worker arc
   - `styles.css` : Global styles for popup.
 
 - **lib/** (AI Core)
-  - `whisper-worker.js` : Wrapper for Whisper.cpp WASM inference.
+  - `moonshine-worker.js`: Primary speech-to-text worker (Transformers.js).
+  - `whisper-worker.js` : Legacy/Alternative WASM wrapper.
   - `webllm-worker.js` : Wrapper for LLM rewriting logic.
-  - `moonshine-worker.js`: Alternative STT worker support.
   - `utils.js` : Shared helpers.
 
 - **assets/** : Icons and media resources.
@@ -68,10 +68,10 @@ VibeCoding operates entirely within the browser sandbox using a multi-worker arc
 ## Key Data Flows
 
 1. **Recording:**
-   User clicks Record -> `popup.js` captures `MediaRecorder` stream -> blobs sent to `service-worker.js`.
+   User clicks Record -> `popup.js` (or `content.js`) captures `MediaRecorder` stream -> blobs sent to `service-worker.js`.
 
 2. **Transcription:**
-   `service-worker.js` sends audio chunks to `whisper-worker.js` -> Text returned -> stored in `chrome.storage.local`.
+   `service-worker.js` forwards audio to `offscreen.js` -> `moonshine-worker.js` -> Text returned -> stored/sent back.
 
 3. **Refinement (Rewrite):**
    User clicks "Format" -> `popup.js` requests rewrite -> `webllm-worker.js` processes text -> clean text returned.
@@ -79,8 +79,8 @@ VibeCoding operates entirely within the browser sandbox using a multi-worker arc
 4. **Injection:**
    User clicks "Insert" -> `popup.js` sends message to `content.js` -> text inserted into active DOM element.
 
-5. **Floating Mic Buttons (New):**
-   User clicks mic icon on any input -> `content.js` starts recording -> sends audio to `service-worker.js` -> transcription returned -> text auto-inserted into that specific input.
+5. **Floating Mic Buttons:**
+   User clicks mic icon on any input -> `content.js` starts recording -> sends audio to `service-worker.js` -> forwarded to `moonshine-worker.js` -> transcription returned -> text auto-inserted.
 
 6. **Keyboard Shortcuts:**
    User presses `Alt+Shift+R` -> `chrome.commands` triggers `service-worker.js` -> broadcasts to active tab's `content.js` -> toggles recording.

@@ -45,9 +45,17 @@
 - [x] **Clipboard Fallback**: Falls back to clipboard with user notification.
 - [ ] **Shadow DOM Support**: Not yet implemented (edge case).
 
-## Phase 5: Hardening ✅ (Partial)
+## Phase 5: Hardening ✅ (Current Focus)
 - [x] **Memory Management**: Worker terminates after 5 min idle via `terminateWorker()`.
 - [x] **Timeout Handling**: 2-minute timeout on transcription requests.
+- [x] **Race Condition Fix**: Implemented Promise-based lock for model loading (prevent "Model not loaded properly").
+- [x] **WASM Stability**: Forced single-threaded WASM execution to prevent browser hangs.
+- [x] **Test Coverage Expansion**:
+  - [x] Unit tests for Content script (using JSDOM).
+  - [x] Unit tests for Service Worker.
+  - [x] Unit tests for Offscreen document.
+  - [x] Concurrency tests for Workers.
+  - [x] Total coverage: ~60 tests (Core logic covered).
 - [x] **Error Messages**: Whisper throws clear "not implemented" error.
 - [ ] **Retry Logic**: Model download retry not yet implemented.
 - [ ] **Privacy Audit**: Network tab audit pending.

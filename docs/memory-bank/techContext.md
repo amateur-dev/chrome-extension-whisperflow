@@ -22,14 +22,15 @@
     - `whisper.cpp` WASM binaries (Alternative transcription).
 - **Dev Dependencies (npm):**
     - `vitest` ^2.1.0 (Test framework).
+    - `jsdom` ^28.0.0 (DOM implementation for node).
     - `@huggingface/transformers` ^3.0.0 (For integration tests in Node.js).
 
 ## Development Setup
 - **Build System:** None (Vanilla ES Modules). Direct load of `manifest.json`.
 - **Testing:**
-    - `npm test` — Unit tests (45 tests, ~300ms).
+    - `npm test` — Unit tests (~55 tests, <1s).
     - `npm run test:integration` — Real model transcription tests (4 tests, ~7s).
-    - `npm run test:all` — Full test suite (49 tests).
+    - `npm run test:all` — Full test suite (~60 tests).
 - **Linting:** Standard JS style.
 
 ## Keyboard Shortcuts (chrome.commands)

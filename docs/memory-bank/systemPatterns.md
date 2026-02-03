@@ -18,8 +18,14 @@
     - Cached transcripts (History).
     - Model download status.
 
+## Concurrency Patterns
+- **Model Loading Lock:** `lib/moonshine-worker.js` uses a singleton `loadingPromise` to prevent race conditions when multiple transcription requests arrive simultaneously during model initialization.
+- **Single-Threaded WASM:** `numThreads` set to 1 for ONNX runtime to prevent browser hangs in Extension environments (Blob Worker limitations).
+
 ## Testing Patterns
 - **Unit Tests:** Pure functions in `lib/utils.js` tested directly with Vitest.
+- **Micro-Integration Tests:** Content/Background scripts tested using JSDOM and Vitest `global` stubs.
+- **Testable Exports:** Extension scripts (`content.js`, `service-worker.js`) export classes/functions via `module.exports` shims (conditional check for `typeof module`).
 - **Chrome API Mocking:** `tests/mocks/chrome.js` provides stubs for `chrome.storage`, `chrome.runtime`, etc.
 - **Integration Tests:** Real Moonshine model inference via `@huggingface/transformers` in Node.js.
 - **Audio Fixtures:** 16kHz mono WAV files in `tests/fixtures/` with keyword-based validation.

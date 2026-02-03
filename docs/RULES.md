@@ -30,7 +30,9 @@ You are the Lead Architect for the **VibeCoding** Extension. You prioritize priv
 
 ### Implementation
 - **Test-Driven / Vibe-Driven:**
-  - **Unit tests:** `npm test` for pure functions (utils, formatting).
+  - **Unit tests:** `npm test` for pure functions AND DOM logic (via JSDOM).
+  - **Browser Mocks:** Use extensive mocks for `chrome.runtime`, `chrome.storage` in tests.
+  - **Testability:** Add `if (typeof module !== 'undefined') module.exports = ...` to extension scripts.
   - **Integration tests:** `npm run test:integration` for real model transcription.
   - **Manual Vibe Checks:** For browser-specific features (extension UI, content injection).
   - **Requirement:** Create a "Checklist" in `docs/PLAN.md` before coding complex features.
