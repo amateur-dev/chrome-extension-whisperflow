@@ -38,7 +38,8 @@
 
 ## Post-Launch Stability (Phase 4)
 - [x] Fix "Model not loaded properly" race condition (Promise-based loading lock).
-- [x] Fix WASM backend causing browser hang (threads=1).
+- [x] Fix WASM backend loading (Bundle local WASM binaries).
+- [x] Fix "Infinite Formatting Hang" (WebLLM Worker stub & message routing).
 - [x] Comprehensive Unit Test Suite (Content, Background, Offscreen, Workers).
 - [x] Fix Service Worker syntax errors.
 - [x] Fix Manifest CSP for WASM workers.

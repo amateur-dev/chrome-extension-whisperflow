@@ -1,32 +1,29 @@
 # activeContext
 
 ## Current Session
-**Goal:** Finalize stability phase and prepare for manual E2E testing.
+**Goal:** Fix user-reported "Model not loaded" error and "Formatting Infinite Hang".
 
 ## Current Focus
-- Updated documentation (`PLAN`, `TECH_STACK`, `activeContext`) to match code state.
-- Verified Unit Test coverage (100% of core logic).
+- Resolved WASM loading issue by bundling binary files locally (removed CDN dependency).
+- Fixed WebLLM Worker communication breakdown (causing formatting hang).
+- Added robust unit test for WebLLM Worker.
 
 ## Recent Changes
-- **Documentation Updates:**
-  - `PLAN.md`: Marked Phase 5 as complete (Testing + Stability).
-  - `TECH_STACK.md`: Added JSDOM and updated test counts.
-  - `systemPatterns.md`: Added Concurrency Patterns and Testable Exports.
-  
-- **Comprehensive Testing Suite:**
-  - Added `tests/unit/content.test.js` (DOM/UI logic).
-  - Added `tests/unit/service-worker.test.js` (Background logic).
-  - Added `tests/unit/offscreen.test.js` (Web Worker management).
-  - Added `tests/unit/worker-concurrency.test.js` (Race condition fix).
-
-- **Refactoring for Testability:**
-  - Updated `content.js`, `service-worker.js`, `offscreen.js` to support module exports.
-  - Synced formatting logic.
+- **WASM Bundle Fix:**
+  - Copied `ort-wasm-simd-threaded.wasm` to `lib/`.
+  - Updated `moonshine-worker.js` to load from local path.
+- **Worker Communication Fix:**
+  - Updated `offscreen.js` to route `REWRITE` messages correctly.
+  - Refactored `webllm-worker.js` to handle messages reliably & provide Stub/Fallback.
+  - Fixed syntax error in `webllm-worker.js`.
+- **Testing:**
+  - Created `tests/unit/webllm.test.js` covering worker initialization and message handling.
+  - Verified all 6 suite tests (61 tests total) pass.
 
 ## Previous Changes (Phase 3)
 - Restored `content.js` Floating Mic logic.
 - Fixed WASM thread safety loop.
 
 ## Next Steps
-- [ ] Manual E2E test: Record audio on a real webpage to confirm functional behavior with new fixes.
+- [ ] Manual E2E test: Record audio -> Transcribe -> Format -> Check Result.
 - [ ] Release Prep: Create a zip build for manual installation.
