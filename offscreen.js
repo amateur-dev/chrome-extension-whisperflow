@@ -270,11 +270,12 @@ async function rewriteText(text) {
   }
   
   return new Promise((resolve, reject) => {
-    // Timeout 2 minutes
+    // Shorter timeout for MVP (5 seconds) since we are using a stub/simulation
+    // This prevents the 2-minute "bad UX" hang if something goes wrong
     const timeout = setTimeout(() => {
         pendingRewrite = null;
         reject(new Error('Rewrite timed out'));
-    }, 120000);
+    }, 5000);
     
     pendingRewrite = {
       resolve: (res) => { clearTimeout(timeout); resolve(res); },
