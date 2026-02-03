@@ -13,6 +13,10 @@
 let moonshineWorker = null;
 let pendingTranscription = null;
 
+// WebLLM Worker instance
+let webllmWorker = null;
+let pendingRewrite = null;
+
 // Keep model loaded - no idle timeout
 // WASM compilation is expensive, so we keep the worker alive permanently
 let modelPreloaded = false;
@@ -20,10 +24,12 @@ let modelPreloaded = false;
 // Initialize the Moonshine worker
 function initWorker() {
   if (moonshineWorker) {
+    console.log('[OFFSCREEN] initWorker: Already initialized');
     return; // Already initialized
   }
   
   try {
+    console.log('[OFFSCREEN] initWorker: Creating new Worker via global.Worker');
     // Create worker with module type for ES imports
     moonshineWorker = new Worker(
       chrome.runtime.getURL('lib/moonshine-worker.js'),
@@ -51,6 +57,35 @@ function initWorker() {
     }
   } catch (error) {
     console.error('Failed to initialize Moonshine worker:', error);
+  }
+}
+
+// Initialize the WebLLM worker
+function initWebLLMWorker() {
+  if (webllmWorker) {
+    return; // Already initialized
+  }
+  
+  try {
+    console.log('[OFFSCREEN] Initializing WebLLM worker...');
+    webllmWorker = new Worker(
+      chrome.runtime.getURL('lib/webllm-worker.js'),
+      { type: 'module' }
+    );
+    
+    webllmWorker.onmessage = handleWebLLMMessage;
+    
+    webllmWorker.onerror = (error) => {
+      console.error('[OFFSCREEN] WebLLM worker error:', error);
+      if (pendingRewrite) {
+        pendingRewrite.reject(new Error('WebLLM Worker error: ' + error.message));
+        pendingRewrite = null;
+      }
+    };
+    
+    console.log('[OFFSCREEN] WebLLM worker initialized');
+  } catch (error) {
+    console.error('[OFFSCREEN] Failed to initialize WebLLM worker:', error);
   }
 }
 
@@ -131,6 +166,38 @@ function handleWorkerMessage(event) {
   }
 }
 
+// Handle messages from the WebLLM worker
+function handleWebLLMMessage(event) {
+  const { type, data } = event.data;
+  console.log('[OFFSCREEN] WebLLM Worker message:', type);
+  
+  switch (type) {
+    case 'MODEL_LOADED':
+      console.log('[OFFSCREEN] WebLLM Model loaded');
+      // Could notify service worker here
+      break;
+      
+    case 'REWRITE_COMPLETE':
+      console.log('[OFFSCREEN] Rewrite complete');
+      if (pendingRewrite) {
+        pendingRewrite.resolve({
+          success: true,
+          text: data.text
+        });
+        pendingRewrite = null;
+      }
+      break;
+      
+    case 'ERROR':
+      console.error('[OFFSCREEN] WebLLM Worker Error:', data.error);
+      if (pendingRewrite) {
+        pendingRewrite.reject(new Error(data.error));
+        pendingRewrite = null;
+      }
+      break;
+  }
+}
+
 // Transcribe audio using the Moonshine worker
 async function transcribeAudio(audioData, sampleRate = 16000) {
   console.log('[OFFSCREEN] transcribeAudio Step 1: Starting...');
@@ -190,6 +257,35 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
       type: 'TRANSCRIBE',
       data: { audioData: decodedAudio, sampleRate, alreadyDecoded: true }
     }, [decodedAudio.buffer]);
+  });
+}
+
+// Perform text rewrite using WebLLM
+async function rewriteText(text) {
+  console.log('[OFFSCREEN] rewriteText called');
+  initWebLLMWorker();
+  
+  if (!webllmWorker) {
+    throw new Error('WebLLM worker not available');
+  }
+  
+  return new Promise((resolve, reject) => {
+    // Timeout 2 minutes
+    const timeout = setTimeout(() => {
+        pendingRewrite = null;
+        reject(new Error('Rewrite timed out'));
+    }, 120000);
+    
+    pendingRewrite = {
+      resolve: (res) => { clearTimeout(timeout); resolve(res); },
+      reject: (err) => { clearTimeout(timeout); reject(err); }
+    };
+    
+    // Check if model needs loading (rudimentary check, worker should handle state)
+    webllmWorker.postMessage({
+      type: 'REWRITE',
+      data: { text }
+    });
   });
 }
 
@@ -333,6 +429,29 @@ function sendProgressToServiceWorker(message, progress) {
 }
 
 // Initialize worker on load
-initWorker();
+console.log('[OFFSCREEN] Script loaded, initializing...');
+if (typeof module === 'undefined' || !module.exports) {
+  try {
+    initWorker();
+    initWebLLMWorker();
+    console.log('[OFFSCREEN] Initialization complete');
+  } catch (e) {
+    console.error('[OFFSCREEN] Initialization failed:', e);
+  }
+}
 
 console.log('VibeCoding offscreen document loaded');
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    initWorker,
+    initWebLLMWorker,
+    handleWorkerMessage,
+    resetState: () => {
+        moonshineWorker = null;
+        webllmWorker = null;
+        modelPreloaded = false;
+        pendingTranscription = null;
+    }
+  };
+}
