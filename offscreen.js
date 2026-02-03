@@ -162,11 +162,12 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
   
   // Create a promise for the transcription result
   return new Promise((resolve, reject) => {
-    // Set timeout for transcription (2 minutes max)
+    // Set timeout for transcription (5 minutes to allow for first-time model load)
     const timeout = setTimeout(() => {
+      console.error('[OFFSCREEN] Transcription timeout - worker not responding');
       pendingTranscription = null;
       reject(new Error('Transcription timed out'));
-    }, 120000);
+    }, 300000);
     
     pendingTranscription = {
       resolve: (result) => {
@@ -179,10 +180,13 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
       }
     };
     
-    // Send DECODED audio (Float32Array) to worker - not raw base64
+    // Send DECODED audio (Float32Array) to worker
+    // Use transferable to avoid copying large arrays
+    console.log('[OFFSCREEN] Sending to worker, samples:', decodedAudio.length);
     moonshineWorker.postMessage({
       type: 'TRANSCRIBE',
       data: { audioData: decodedAudio, sampleRate, alreadyDecoded: true }
+    }, [decodedAudio.buffer]);
     });
   });
 }
