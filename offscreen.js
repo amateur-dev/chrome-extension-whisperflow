@@ -187,7 +187,6 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
       type: 'TRANSCRIBE',
       data: { audioData: decodedAudio, sampleRate, alreadyDecoded: true }
     }, [decodedAudio.buffer]);
-    });
   });
 }
 
@@ -254,38 +253,69 @@ async function loadModel() {
 
 // Listen for messages from the service worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[OFFSCREEN] Received message:', message.type, 'target:', message.target);
+  console.log('[OFFSCREEN] === MESSAGE RECEIVED ===');
+  console.log('[OFFSCREEN] message.type:', message.type);
+  console.log('[OFFSCREEN] message.target:', message.target);
+  console.log('[OFFSCREEN] sender:', sender?.id);
   
   if (message.target !== 'offscreen') {
-    console.log('[OFFSCREEN] Ignoring - not targeted at offscreen');
-    return;
+    console.log('[OFFSCREEN] SKIP: target is not offscreen');
+    return false;
   }
   
-  switch (message.type) {
-    case 'TRANSCRIBE':
-      console.log('[OFFSCREEN] Processing TRANSCRIBE, audio length:', message.audioData?.length);
+  console.log('[OFFSCREEN] Target matched, processing...');
+  
+  if (message.type === 'TRANSCRIBE') {
+    console.log('[OFFSCREEN] TRANSCRIBE handler entered');
+    console.log('[OFFSCREEN] audioData exists:', !!message.audioData);
+    console.log('[OFFSCREEN] audioData length:', message.audioData?.length);
+    console.log('[OFFSCREEN] sampleRate:', message.sampleRate);
+    
+    // Wrap in try-catch to catch any sync errors
+    try {
+      console.log('[OFFSCREEN] Calling transcribeAudio...');
       transcribeAudio(message.audioData, message.sampleRate)
         .then(result => {
-          console.log('[OFFSCREEN] Transcription success, sending response');
+          console.log('[OFFSCREEN] transcribeAudio resolved:', result?.success);
+          console.log('[OFFSCREEN] Calling sendResponse with result...');
           sendResponse(result);
+          console.log('[OFFSCREEN] sendResponse called successfully');
         })
         .catch(error => {
-          console.error('[OFFSCREEN] Transcription failed:', error);
+          console.error('[OFFSCREEN] transcribeAudio rejected:', error.message);
+          console.log('[OFFSCREEN] Calling sendResponse with error...');
           sendResponse({ success: false, error: error.message });
+          console.log('[OFFSCREEN] sendResponse called with error');
         });
+      console.log('[OFFSCREEN] transcribeAudio promise created, returning true');
       return true; // Keep channel open for async response
-      
-    case 'LOAD_MODEL':
-      console.log('[OFFSCREEN] Loading model...');
+    } catch (syncError) {
+      console.error('[OFFSCREEN] SYNC ERROR in TRANSCRIBE handler:', syncError);
+      sendResponse({ success: false, error: syncError.message });
+      return false;
+    }
+  }
+  
+  if (message.type === 'LOAD_MODEL') {
+    console.log('[OFFSCREEN] LOAD_MODEL handler entered');
+    try {
       loadModel();
       sendResponse({ success: true });
-      return false;
-      
-    case 'PING':
-      console.log('[OFFSCREEN] Ping received, responding ready');
-      sendResponse({ success: true, status: 'ready' });
-      return false;
+    } catch (e) {
+      console.error('[OFFSCREEN] LOAD_MODEL error:', e);
+      sendResponse({ success: false, error: e.message });
+    }
+    return false;
   }
+  
+  if (message.type === 'PING') {
+    console.log('[OFFSCREEN] PING handler entered');
+    sendResponse({ success: true, status: 'ready' });
+    return false;
+  }
+  
+  console.log('[OFFSCREEN] Unknown message type:', message.type);
+  return false;
 });
 
 /**
