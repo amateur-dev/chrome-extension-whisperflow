@@ -122,6 +122,21 @@ class VibeCodingPopup {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'TRANSCRIPTION_PROGRESS') {
         this.updateTranscriptionProgress(message);
+        // Also update model status during loading
+        if (this.state === 'idle' && this.elements.modelStatus) {
+          this.elements.modelStatus.textContent = message.message || 'Loading model...';
+          this.elements.modelStatus.style.color = '#fdcb6e';
+        }
+      } else if (message.type === 'MODEL_LOADED') {
+        // Model finished loading
+        if (message.success) {
+          this.elements.modelStatus.textContent = 'Moonshine Ready ✓';
+          this.elements.modelStatus.style.color = '#00b894';
+          this.modelReady = true;
+        } else {
+          this.elements.modelStatus.textContent = 'Model failed to load';
+          this.elements.modelStatus.style.color = '#e74c3c';
+        }
       }
       return false;
     });
@@ -131,6 +146,7 @@ class VibeCodingPopup {
    * Update UI with transcription progress
    */
   updateTranscriptionProgress(message) {
+    // Update transcribing screen
     if (this.state === 'transcribing' && this.elements.transcribingInfo) {
       if (message.progress !== undefined) {
         this.elements.transcribingInfo.textContent = `Loading model: ${Math.round(message.progress)}%`;

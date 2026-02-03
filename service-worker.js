@@ -260,6 +260,12 @@ async function handleMessage(message, sender) {
       
     case 'MODEL_LOADED':
       console.log('Model loaded in offscreen:', message.success);
+      // Broadcast to popup so it can update UI
+      chrome.runtime.sendMessage({
+        type: 'MODEL_LOADED',
+        success: message.success,
+        error: message.error
+      }).catch(() => {}); // Ignore if popup is closed
       return { success: true };
       
     case 'TRANSCRIPTION_PROGRESS':
