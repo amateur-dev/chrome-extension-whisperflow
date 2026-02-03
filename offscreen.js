@@ -462,6 +462,7 @@ if (typeof module !== 'undefined' && module.exports) {
     initWorker,
     initWebLLMWorker,
     handleWorkerMessage,
+    rewriteText,
     resetState: () => {
         moonshineWorker = null;
         webllmWorker = null;

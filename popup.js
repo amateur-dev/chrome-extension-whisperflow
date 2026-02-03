@@ -730,3 +730,8 @@ class VibeCodingPopup {
 document.addEventListener('DOMContentLoaded', () => {
   new VibeCodingPopup();
 });
+
+// Export for testing
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { VibeCodingPopup };
+}
