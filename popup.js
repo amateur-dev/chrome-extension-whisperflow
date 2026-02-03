@@ -177,14 +177,15 @@ class VibeCodingPopup {
       const response = await chrome.runtime.sendMessage({ type: 'CHECK_STATUS' });
       if (response && response.ready) {
         const modelName = this.currentModel === 'moonshine' ? 'Moonshine' : 'Whisper';
-        this.elements.modelStatus.textContent = `${modelName} Ready`;
+        // Show "Available" instead of "Ready" since model downloads on first use
+        this.elements.modelStatus.textContent = `${modelName} Available`;
         this.elements.modelStatus.style.color = '#00b894';
       } else {
         this.elements.modelStatus.textContent = response?.status || 'Initializing...';
       }
     } catch (error) {
       console.log('Model status check:', error.message);
-      this.elements.modelStatus.textContent = 'Ready (demo mode)';
+      this.elements.modelStatus.textContent = 'Available';
       this.elements.modelStatus.style.color = '#00b894';
     }
   }

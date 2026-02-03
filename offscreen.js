@@ -156,6 +156,17 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
     throw new Error('Moonshine worker not available');
   }
   
+  // Decode audio in offscreen document (has AudioContext access)
+  // Workers don't have access to AudioContext/OfflineAudioContext
+  let decodedAudio;
+  try {
+    decodedAudio = await decodeBase64AudioToFloat32(audioData, sampleRate);
+    console.log(`Decoded audio: ${decodedAudio.length} samples at ${sampleRate}Hz`);
+  } catch (decodeError) {
+    console.error('Audio decode failed in offscreen:', decodeError);
+    throw new Error('Failed to decode audio: ' + decodeError.message);
+  }
+  
   // Create a promise for the transcription result
   return new Promise((resolve, reject) => {
     // Set timeout for transcription (2 minutes max)
@@ -175,9 +186,63 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
       }
     };
     
-    // Send transcription request to worker
+    // Send DECODED audio (Float32Array) to worker - not raw base64
     moonshineWorker.postMessage({
       type: 'TRANSCRIBE',
+      data: { audioData: decodedAudio, sampleRate, alreadyDecoded: true }
+    });
+  });
+}
+
+/**
+ * Decode base64 audio to Float32Array in offscreen document
+ * (Workers don't have AudioContext access)
+ */
+async function decodeBase64AudioToFloat32(base64Audio, targetSampleRate = 16000) {
+  // Decode base64 to ArrayBuffer
+  const binaryString = atob(base64Audio);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  // Use OfflineAudioContext to decode and resample
+  const maxDuration = 300; // 5 minutes max
+  const numberOfFrames = targetSampleRate * maxDuration;
+  
+  const audioContext = new OfflineAudioContext(1, numberOfFrames, targetSampleRate);
+  
+  try {
+    const decodedAudio = await audioContext.decodeAudioData(bytes.buffer.slice(0));
+    
+    // If already at target sample rate, return channel data directly
+    if (decodedAudio.sampleRate === targetSampleRate) {
+      const channelData = decodedAudio.getChannelData(0);
+      // Return a copy as transferable
+      return new Float32Array(channelData);
+    }
+    
+    // Resample using OfflineAudioContext
+    const source = audioContext.createBufferSource();
+    source.buffer = decodedAudio;
+    source.connect(audioContext.destination);
+    source.start();
+    
+    const renderedBuffer = await audioContext.startRendering();
+    
+    // Trim to actual audio length
+    const actualFrames = Math.min(
+      renderedBuffer.length,
+      Math.ceil(decodedAudio.duration * targetSampleRate)
+    );
+    
+    return new Float32Array(renderedBuffer.getChannelData(0).slice(0, actualFrames));
+    
+  } catch (error) {
+    console.error('Audio decode error in offscreen:', error);
+    throw new Error('Failed to decode audio format. Try a shorter recording.');
+  }
+}
       data: { audioData, sampleRate }
     });
   });

@@ -102,7 +102,8 @@ async function initializeModels() {
     // Ensure offscreen document is created for AI inference
     await ensureOffscreen();
     
-    // Moonshine becomes ready once offscreen is created
+    // Moonshine is "available" (offscreen ready) but model may not be downloaded yet
+    // The actual model download happens on first transcription
     moonshineReady = true;
     
     // Whisper is ready only if downloaded
@@ -111,12 +112,12 @@ async function initializeModels() {
     // LLM is ready for demo
     llmReady = true;
     
-    // Overall ready state
+    // Overall ready state - ready to accept transcription requests
     isReady = (currentModel === 'moonshine' && moonshineReady) || 
               (currentModel === 'whisper' && whisperReady);
     
     console.log('VibeCoding models initialized');
-    console.log(`Moonshine: ${moonshineReady ? 'Ready' : 'Not Ready'}`);
+    console.log(`Moonshine: ${moonshineReady ? 'Available' : 'Not Ready'}`);
     console.log(`Whisper: ${whisperReady ? 'Ready' : 'Not Downloaded'}`);
   } catch (error) {
     console.error('Failed to initialize models:', error);
