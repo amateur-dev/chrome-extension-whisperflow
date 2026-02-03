@@ -3,7 +3,7 @@
 ## Phase 0: Testing Infrastructure ✅
 - [x] **Vitest Setup**: `package.json`, `vitest.config.js` for ES Modules.
 - [x] **Chrome API Mocks**: `tests/mocks/chrome.js` for storage, runtime, tabs.
-- [x] **Unit Tests**: 30 tests for `lib/utils.js` (base64, formatting, debounce, storage).
+- [x] **Unit Tests**: 45 tests for `lib/utils.js` (base64, formatting, debounce, storage).
 - [x] **Integration Tests**: Real Moonshine transcription with audio fixtures.
 - [x] **Audio Fixtures**: 16kHz mono WAV files with keyword validation.
 - [x] **Documentation**: Updated `TECH_STACK.md`, `RULES.md` with test commands.
@@ -51,3 +51,14 @@
 - [x] **Error Messages**: Whisper throws clear "not implemented" error.
 - [ ] **Retry Logic**: Model download retry not yet implemented.
 - [ ] **Privacy Audit**: Network tab audit pending.
+
+## Phase 6: UX Enhancements ✅
+- [x] **Floating Mic Buttons**: Mic icon on every `<input>`, `<textarea>`, `[contenteditable]`.
+- [x] **Dynamic Detection**: `MutationObserver` detects inputs added after page load (SPA-friendly).
+- [x] **Recording Overlay**: Purple pulse animation during recording.
+- [x] **Auto-Paste**: Transcription auto-inserted into the specific clicked input.
+- [x] **Keyboard Shortcuts**:
+  - `Alt+Shift+V` — Open popup (same as clicking extension icon).
+  - `Alt+Shift+R` — Toggle recording from anywhere on page.
+  - Configurable via `chrome://extensions/shortcuts`.
+- [x] **Namespaced CSS**: `.vibecoding-*` classes avoid conflicts with page styles.

@@ -30,3 +30,11 @@
 2. Check for `selection` ranges.
 3. Fallback: `document.execCommand('insertText')` (Deprecated but still widely reliable for legacy inputs).
 4. Final Fallback: Copy to clipboard and alert user.
+
+## Floating Mic Button Pattern (NEW)
+1. **Initialization:** On page load, scan for all `input`, `textarea`, `[contenteditable]` elements.
+2. **Button Injection:** Create positioned mic button relative to each input.
+3. **WeakMap Tracking:** Use `WeakMap` to track which elements have buttons attached (avoids duplicates).
+4. **MutationObserver:** Watch for dynamically added inputs (SPAs like React, Vue).
+5. **Recording Flow:** Click mic → show overlay → capture audio → send to service worker → receive transcription → insert into that specific input.
+6. **Namespacing:** All injected elements use `.vibecoding-*` classes to avoid CSS conflicts.

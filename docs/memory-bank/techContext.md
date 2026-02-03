@@ -27,12 +27,19 @@
 ## Development Setup
 - **Build System:** None (Vanilla ES Modules). Direct load of `manifest.json`.
 - **Testing:**
-    - `npm test` — Unit tests for pure functions.
-    - `npm run test:integration` — Real model transcription tests.
-    - `npm run test:all` — Full test suite (34 tests).
+    - `npm test` — Unit tests (45 tests, ~300ms).
+    - `npm run test:integration` — Real model transcription tests (4 tests, ~7s).
+    - `npm run test:all` — Full test suite (49 tests).
 - **Linting:** Standard JS style.
+
+## Keyboard Shortcuts (chrome.commands)
+- `_execute_action` — `Alt+Shift+V` opens popup (default behavior).
+- `toggle-recording` — `Alt+Shift+R` toggles recording from any page.
+- Shortcuts configurable at `chrome://extensions/shortcuts`.
 
 ## Known Technical Risks
 - **WASM Memory Usage:** Large models might crash the extension process on low-RAM devices.
 - **Cold Boot:** Model loading times (WASM download/init) can be slow on first run (~50MB for Moonshine-tiny).
 - **DOM Injection:** `content.js` needs robust heuristics to find the "active" text field in complex apps (like Notion/Slack).
+- **Mic Permissions in Popup:** Chrome popups can't reliably trigger `getUserMedia` permission prompt. Workaround: "Open in Tab" button.
+- **CSS Conflicts:** Floating mic buttons use `.vibecoding-*` namespace to avoid conflicts with page styles.

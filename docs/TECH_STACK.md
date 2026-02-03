@@ -25,7 +25,14 @@
 
 ## Testing
 - **Framework:** Vitest (ES Module native, Node.js)
-- **Unit Tests:** `npm test` — Pure function tests (utils, formatting)
+- **Unit Tests:** `npm test` — 45 tests for pure functions (utils, formatting)
 - **Integration Tests:** `npm run test:integration` — Real model transcription with audio fixtures
-- **All Tests:** `npm run test:all`
+- **All Tests:** `npm run test:all` — 49 tests total
 - **Manual Checks:** E2E "Vibe Checks" for browser-specific functionality
+
+## UX Features
+- **Floating Mic Buttons:** Injected on `<input>`, `<textarea>`, `[contenteditable]`
+- **Dynamic Detection:** `MutationObserver` for SPA-friendly input detection
+- **Keyboard Shortcuts:** `Alt+Shift+V` (popup), `Alt+Shift+R` (toggle recording)
+- **Recording Overlay:** Purple pulse animation during recording
+- **Auto-Paste:** Transcription inserted into clicked input automatically

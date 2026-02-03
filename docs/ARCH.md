@@ -48,10 +48,11 @@ VibeCoding operates entirely within the browser sandbox using a multi-worker arc
 ## Directory Structure
 
 - **root**
-  - `manifest.json` : Entry point, permissions, MV3 config.
-  - `service-worker.js` : Central orchestrator, handles message passing and worker lifecycle.
+  - `manifest.json` : Entry point, permissions, MV3 config, keyboard shortcuts.
+  - `service-worker.js` : Central orchestrator, handles message passing, worker lifecycle, and keyboard commands.
   - `popup.html` / `popup.js` : User interface, recording controls, transcript display.
-  - `content.js` : Injects text into active page inputs (Gmail, Slack, etc.).
+  - `content.js` : Floating mic buttons, recording overlay, auto-paste into inputs.
+  - `content.css` : Styles for mic buttons, recording overlay, animations.
   - `styles.css` : Global styles for popup.
 
 - **lib/** (AI Core)
@@ -77,3 +78,9 @@ VibeCoding operates entirely within the browser sandbox using a multi-worker arc
 
 4. **Injection:**
    User clicks "Insert" -> `popup.js` sends message to `content.js` -> text inserted into active DOM element.
+
+5. **Floating Mic Buttons (New):**
+   User clicks mic icon on any input -> `content.js` starts recording -> sends audio to `service-worker.js` -> transcription returned -> text auto-inserted into that specific input.
+
+6. **Keyboard Shortcuts:**
+   User presses `Alt+Shift+R` -> `chrome.commands` triggers `service-worker.js` -> broadcasts to active tab's `content.js` -> toggles recording.
