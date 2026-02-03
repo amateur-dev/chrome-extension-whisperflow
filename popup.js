@@ -517,6 +517,26 @@ class VibeCodingPopup {
   showPreview() {
     this.elements.originalText.textContent = this.transcribedText;
     this.elements.formattedText.textContent = this.formattedText;
+    
+    // Hide original text preview if it is identical to formatted text or only differs by whitespace
+    const originalNorm = this.transcribedText.trim();
+    const formattedNorm = this.formattedText.trim();
+    
+    // HACK: Find the container for original text (assuming it's a parent or sibling structure)
+    // The HTML likely has a wrapper around the original text area. 
+    // Since we don't have the HTML structure in context, let's assume elements.originalText is the TEXTAREA/DIV itself.
+    if (originalNorm === formattedNorm) {
+        if (this.elements.originalText && this.elements.originalText.parentElement) {
+             // Hide the entire "Original" section container if possible
+             // We'll hide the direct element for now, but usually there's a label "ORIGINAL".
+             this.elements.originalText.parentElement.style.display = 'none';
+        }
+    } else {
+        if (this.elements.originalText && this.elements.originalText.parentElement) {
+            this.elements.originalText.parentElement.style.display = 'block';
+        }
+    }
+
     this.showScreen('preview');
   }
   
