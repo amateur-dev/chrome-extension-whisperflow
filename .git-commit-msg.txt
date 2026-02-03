@@ -1,34 +1,40 @@
-feat(tests): add programmatic testing infrastructure with Vitest
+fix(core): complete Phase 1-2 implementation with service worker routing and hardening
 
-## What
-- Add Vitest test framework with ES Module support
-- Create 30 unit tests for lib/utils.js pure functions
-- Create 4 integration tests with real Moonshine model transcription
-- Add Chrome API mocks for testing storage, runtime, tabs
-- Add audio fixtures infrastructure (16kHz WAV format)
+## What Changed
+
+### Service Worker ↔ Offscreen Communication
+- Added `sendToOffscreen()` helper with 2-minute timeout for reliable message passing
+- Added `pingOffscreen()` function to check if offscreen document is ready
+- Fixed message listener to properly delegate offscreen-targeted messages
+- Service worker now relays `TRANSCRIPTION_PROGRESS` to popup for UI updates
+
+### Popup Improvements
+- Added listener for `TRANSCRIPTION_PROGRESS` to show model loading %
+- Added `updateTranscriptionProgress()` to update transcribing screen
+- Added `MAX_RECORDING_DURATION` (5 minutes) with auto-stop to prevent memory issues
+
+### Worker Lifecycle Management
+- Added `WORKER_IDLE_TIMEOUT` (5 minutes) in offscreen.js
+- Added `terminateWorker()` to free ~200MB RAM when idle
+- Added `resetIdleTimer()` called after each transcription
+
+### Whisper Cleanup
+- Changed `transcribeWithWhisper()` to throw clear "not implemented" error
+- Moonshine is the primary (and only working) transcription engine
 
 ## Why
-- Enable automated testing to catch regressions early
-- Validate transcription pipeline works correctly with real audio
-- Reduce reliance on manual 'Vibe Checks' for core functionality
-- Integration tests verify the same Transformers.js library used in production
+- Fixes broken message routing that prevented transcription from working
+- Adds memory management to prevent RAM bloat from idle workers
+- Adds recording limits to prevent accidental long recordings
+- Provides user feedback during model loading (first-run ~50MB download)
 
-## Files Added
-- package.json: npm config with vitest + @huggingface/transformers
-- vitest.config.js: ES Module configuration
-- tests/setup.js: Global test setup with Chrome mocks, btoa/atob polyfills
-- tests/mocks/chrome.js: Comprehensive chrome.* API stubs
-- tests/unit/utils.test.js: 30 tests for base64, formatting, debounce, storage
-- tests/integration/transcription.test.js: Real model transcription tests
-- tests/fixtures/: Audio files and manifest for test data
+## Files Modified
+- service-worker.js: sendToOffscreen(), progress forwarding
+- popup.js: Progress listener, recording limit
+- offscreen.js: Worker cleanup on idle
+- docs/PLAN.md: Updated Phase 1, 2, 4, 5 as complete
+- docs/memory-bank/: Updated activeContext, progress
 
-## Documentation Updated
-- docs/PLAN.md: Added Phase 0 (Testing Infrastructure) - all complete
-- docs/RULES.md: Updated testing section with npm commands
-- docs/TECH_STACK.md: Added testing framework details
-- docs/memory-bank/*: Updated progress, techContext, systemPatterns, activeContext
-
-## Test Commands
-- npm test: Unit tests only (~1s)
-- npm run test:integration: Real model transcription (~9s)
-- npm run test:all: Full suite (34 tests passing)
+## Testing
+- All 34 tests passing (npm run test:all)
+- Manual E2E testing recommended: load extension, record, transcribe

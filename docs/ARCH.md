@@ -4,20 +4,45 @@
 
 VibeCoding operates entirely within the browser sandbox using a multi-worker architecture to handle heavy AI tasks without freezing the UI.
 
-```mermaid
-flowchart LR
-    Popup[Popup UI] <--> ServiceWorker[Background Service Worker]
-    ContentScript[Content Script] <--> ServiceWorker
-    
-    subgraph "AI Workers (Off-Main-Thread)"
-        ServiceWorker <--> Whisper[Whisper Worker (WASM)]
-        ServiceWorker <--> WebLLM[WebLLM Worker]
-        ServiceWorker <--> Moonshine[Moonshine Worker]
-    end
-    
-    subgraph "Storage"
-        ChromeStorage[(chrome.storage.local)]
-    end
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              BROWSER SANDBOX                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│   ┌──────────────┐          ┌─────────────────────────┐                     │
+│   │  Popup UI    │◄────────►│  Background Service     │                     │
+│   │  (popup.js)  │  chrome  │  Worker                 │                     │
+│   └──────────────┘  .runtime│  (service-worker.js)    │                     │
+│                     .sendMsg└───────────┬─────────────┘                     │
+│   ┌──────────────┐          ▲           │                                   │
+│   │Content Script│◄─────────┘           │                                   │
+│   │ (content.js) │                      │                                   │
+│   └──────────────┘                      ▼                                   │
+│                           ┌─────────────────────────────┐                   │
+│                           │   Offscreen Document        │                   │
+│                           │   (offscreen.js)            │                   │
+│                           └─────────────┬───────────────┘                   │
+│                                         │ postMessage                       │
+│                                         ▼                                   │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                    AI WORKERS (Off-Main-Thread)                      │   │
+│   ├─────────────────────┬─────────────────────┬─────────────────────────┤   │
+│   │  Moonshine Worker   │   Whisper Worker    │    WebLLM Worker        │   │
+│   │  (Transformers.js)  │   (WASM)            │    (WebGPU/WASM)        │   │
+│   │                     │                     │                         │   │
+│   │  ┌───────────────┐  │  ┌───────────────┐  │  ┌───────────────────┐  │   │
+│   │  │ moonshine-    │  │  │ whisper-      │  │  │ webllm-worker.js  │  │   │
+│   │  │ worker.js     │  │  │ worker.js     │  │  │                   │  │   │
+│   │  └───────────────┘  │  └───────────────┘  │  └───────────────────┘  │   │
+│   └─────────────────────┴─────────────────────┴─────────────────────────┘   │
+│                                                                              │
+│   ┌─────────────────────────────────────────────────────────────────────┐   │
+│   │                           STORAGE                                    │   │
+│   │                    chrome.storage.local                              │   │
+│   │              (settings, transcripts, model cache)                    │   │
+│   └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Directory Structure

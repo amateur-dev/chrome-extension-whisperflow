@@ -1,7 +1,7 @@
 # progress
 
 ## Project Status: MVP Development
-**Estimated Completion:** ~50% (Scaffolding + Testing infrastructure complete, core logic needs validation)
+**Estimated Completion:** ~75% (Core transcription flow complete, WebLLM refinement pending)
 
 ## Milestones
 - [x] **Project Scaffold:** Manifest, Popup, Background script created.
@@ -12,16 +12,20 @@
   - [x] 30 unit tests for `lib/utils.js` (all passing).
   - [x] 4 integration tests with real Moonshine transcription.
   - [x] Audio fixtures with 16kHz WAV format.
-- [ ] **Audio Capture:** `MediaRecorder` logic in Popup (Needs verification).
-- [ ] **Whisper Integration:**
-  - [ ] WASM binaries present/downloadable?
-  - [ ] `whisper-worker.js` logic implemented (Currently placeholder).
-- [ ] **WebLLM Integration:**
-  - [ ] `webllm-worker.js` logic implemented.
-- [ ] **Injection Logic:** `content.js` script robust testing.
+- [x] **Service Worker Hub:**
+  - [x] `sendToOffscreen()` helper with timeout.
+  - [x] Progress message forwarding to popup.
+- [x] **Audio Capture:** `MediaRecorder` with 5-min limit.
+- [x] **Moonshine Integration:**
+  - [x] Full Transformers.js pipeline in `moonshine-worker.js`.
+  - [x] Progress callbacks during model loading.
+  - [x] Worker idle cleanup after 5 minutes.
+- [x] **Text Injection:** `content.js` handles rich editors.
+- [ ] **WebLLM Integration:** `webllm-worker.js` not yet implemented.
+- [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
 
 ## Known Blockers
-- `whisper-worker.js` is a placeholder string; needs actual Whisper.cpp JS binding code.
+- None for MVP. WebLLM is enhancement, not blocker.
 
 ## Test Commands
 ```bash

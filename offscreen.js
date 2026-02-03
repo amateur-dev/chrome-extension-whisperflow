@@ -13,9 +13,44 @@
 let moonshineWorker = null;
 let pendingTranscription = null;
 
+// Idle timeout for worker cleanup (5 minutes)
+const WORKER_IDLE_TIMEOUT = 5 * 60 * 1000;
+let workerIdleTimer = null;
+
+/**
+ * Reset the idle timer - called after each transcription
+ */
+function resetIdleTimer() {
+  if (workerIdleTimer) {
+    clearTimeout(workerIdleTimer);
+  }
+  workerIdleTimer = setTimeout(() => {
+    console.log('Worker idle timeout - terminating to free memory');
+    terminateWorker();
+  }, WORKER_IDLE_TIMEOUT);
+}
+
+/**
+ * Terminate the worker to free memory
+ */
+function terminateWorker() {
+  if (moonshineWorker) {
+    moonshineWorker.terminate();
+    moonshineWorker = null;
+    console.log('Moonshine worker terminated');
+  }
+  if (workerIdleTimer) {
+    clearTimeout(workerIdleTimer);
+    workerIdleTimer = null;
+  }
+}
+
 // Initialize the Moonshine worker
 function initWorker() {
-  if (moonshineWorker) return;
+  if (moonshineWorker) {
+    resetIdleTimer(); // Reset timer on reuse
+    return;
+  }
   
   try {
     // Create worker with module type for ES imports
@@ -34,6 +69,9 @@ function initWorker() {
         pendingTranscription = null;
       }
     };
+    
+    // Start idle timer
+    resetIdleTimer();
     
     console.log('Moonshine worker initialized');
   } catch (error) {
@@ -82,6 +120,9 @@ function handleWorkerMessage(event) {
       break;
       
     case 'TRANSCRIPTION_COMPLETE':
+      // Reset idle timer after transcription
+      resetIdleTimer();
+      
       if (pendingTranscription) {
         if (data.success) {
           pendingTranscription.resolve({

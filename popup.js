@@ -83,6 +83,27 @@ class VibeCodingPopup {
     // Model radio change events
     this.elements.whisperRadio.addEventListener('change', () => this.onModelChange('whisper'));
     this.elements.moonshineRadio.addEventListener('change', () => this.onModelChange('moonshine'));
+    
+    // Listen for transcription progress messages from service worker
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === 'TRANSCRIPTION_PROGRESS') {
+        this.updateTranscriptionProgress(message);
+      }
+      return false;
+    });
+  }
+  
+  /**
+   * Update UI with transcription progress
+   */
+  updateTranscriptionProgress(message) {
+    if (this.state === 'transcribing' && this.elements.transcribingInfo) {
+      if (message.progress !== undefined) {
+        this.elements.transcribingInfo.textContent = `Loading model: ${Math.round(message.progress)}%`;
+      } else if (message.message) {
+        this.elements.transcribingInfo.textContent = message.message;
+      }
+    }
   }
   
   showScreen(screenName) {
@@ -202,6 +223,9 @@ class VibeCodingPopup {
     return 'audio/webm';
   }
   
+  // Maximum recording duration (5 minutes in ms)
+  static MAX_RECORDING_DURATION = 5 * 60 * 1000;
+  
   startDurationTimer() {
     this.durationInterval = setInterval(() => {
       const elapsed = Date.now() - this.recordingStartTime;
@@ -209,6 +233,12 @@ class VibeCodingPopup {
       const minutes = Math.floor(seconds / 60);
       const displaySeconds = seconds % 60;
       this.elements.duration.textContent = `${minutes}:${displaySeconds.toString().padStart(2, '0')}`;
+      
+      // Auto-stop at max duration
+      if (elapsed >= VibeCodingPopup.MAX_RECORDING_DURATION) {
+        console.log('Max recording duration reached, auto-stopping');
+        this.stopRecording();
+      }
     }, 100);
   }
   

@@ -1,28 +1,34 @@
 # activeContext
 
 ## Current Session
-**Goal:** Add programmatic testing infrastructure to validate transcription functionality.
+**Goal:** Complete Phase 1 & 2 implementation — fix service worker routing, add progress UI, hardening.
 
 ## Current Focus
-- Testing infrastructure with Vitest for unit and integration tests.
-- Real audio fixture transcription validation using Moonshine model.
+- MVP transcription flow working end-to-end.
+- Worker lifecycle management (idle cleanup).
 
 ## Recent Changes
-- **Added testing infrastructure:**
-  - Created `package.json` with Vitest + @huggingface/transformers
-  - Created `vitest.config.js` for ES Module support
-  - Created `tests/setup.js` with Chrome API mocks and Node polyfills
-  - Created `tests/mocks/chrome.js` for chrome.* API stubs
-- **Added unit tests (30 tests):**
-  - `tests/unit/utils.test.js` covering arrayBufferToBase64, base64ToArrayBuffer, formatDuration, debounce, applyBasicFormatting, storage utils
-- **Added integration tests (4 tests):**
-  - `tests/integration/transcription.test.js` with real Moonshine model transcription
-  - Audio fixture in `tests/fixtures/` with 16kHz WAV and keyword matching
-- **Updated docs:**
-  - `TECH_STACK.md` updated with testing framework details
+- **Fixed service-worker ↔ offscreen communication:**
+  - Added `sendToOffscreen()` helper with timeout handling
+  - Added `pingOffscreen()` for ready-check
+  - Fixed message listener to properly ignore offscreen-targeted messages
+- **Added transcription progress UI:**
+  - Popup listens for `TRANSCRIPTION_PROGRESS` messages
+  - Shows model loading percentage during first-run download
+- **Added recording safeguards:**
+  - 5-minute max recording duration with auto-stop
+  - `MAX_RECORDING_DURATION` constant in popup.js
+- **Added worker cleanup:**
+  - Workers terminate after 5 minutes idle (`terminateWorker()`)
+  - `resetIdleTimer()` called after each transcription
+- **Cleaned up Whisper placeholder:**
+  - Now throws clear "not implemented" error instead of fake response
+- **Updated PLAN.md:**
+  - Marked Phase 1, 2, 4, 5 items as complete
+  - Clarified Phase 3 (WebLLM) as future work
 
 ## Next Steps
-- [ ] Verify `whisper-worker.js` implementation (it appears to be a placeholder).
-- [ ] Verify `service-worker.js` message routing.
-- [ ] Investigate `webllm-worker.js` implementation.
-- [ ] Add CI workflow for automated test runs on PRs.
+- [ ] Manual E2E test: Load extension in Chrome, record audio, verify transcription.
+- [ ] Add model download retry logic (3 attempts with backoff).
+- [ ] Implement WebLLM for text refinement (Phase 3).
+- [ ] Privacy audit: Verify no external API calls in Network tab.

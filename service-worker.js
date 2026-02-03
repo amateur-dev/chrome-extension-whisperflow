@@ -108,6 +108,53 @@ async function initializeModels() {
 // Offscreen document management
 const OFFSCREEN_DOCUMENT_PATH = 'offscreen.html';
 
+/**
+ * Send a message to offscreen document with timeout
+ * @param {object} message - Message to send (target will be added)
+ * @param {number} timeout - Timeout in ms (default 2 minutes for transcription)
+ * @returns {Promise<object>} Response from offscreen
+ */
+async function sendToOffscreen(message, timeout = 120000) {
+  await ensureOffscreen();
+  
+  // Add target marker for offscreen document
+  const offscreenMessage = { ...message, target: 'offscreen' };
+  
+  // Create promise with timeout
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`Offscreen message timeout: ${message.type}`));
+    }, timeout);
+    
+    chrome.runtime.sendMessage(offscreenMessage)
+      .then(response => {
+        clearTimeout(timeoutId);
+        if (response === undefined) {
+          reject(new Error('No response from offscreen document'));
+        } else {
+          resolve(response);
+        }
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
+/**
+ * Ping offscreen document to check if it's ready
+ * @returns {Promise<boolean>}
+ */
+async function pingOffscreen() {
+  try {
+    const response = await sendToOffscreen({ type: 'PING' }, 5000);
+    return response?.success === true;
+  } catch {
+    return false;
+  }
+}
+
 async function ensureOffscreen() {
   // Check if offscreen document already exists
   const existingContexts = await chrome.runtime.getContexts({
@@ -140,8 +187,10 @@ async function ensureOffscreen() {
 
 // Message handler
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Ignore messages meant for offscreen document
-  if (message.target === 'offscreen') return;
+  // Ignore messages meant for offscreen document (let offscreen handle them)
+  if (message.target === 'offscreen') {
+    return false; // Don't keep channel open, let offscreen listener handle
+  }
   
   handleMessage(message, sender).then(sendResponse);
   return true; // Keep message channel open for async response
@@ -195,8 +244,14 @@ async function handleMessage(message, sender) {
       return { success: true };
       
     case 'TRANSCRIPTION_PROGRESS':
-      // Could forward to popup if needed
-      console.log('Transcription progress:', message.message);
+      // Forward progress to popup
+      console.log('Transcription progress:', message.message || `${message.progress}%`);
+      // Broadcast to all extension views (popup will receive this)
+      chrome.runtime.sendMessage({
+        type: 'TRANSCRIPTION_PROGRESS',
+        progress: message.progress,
+        message: message.message
+      }).catch(() => {}); // Ignore if popup is closed
       return { success: true };
       
     default:
@@ -278,16 +333,15 @@ async function handleTranscribe(message) {
 async function transcribeWithMoonshine(audioData, mimeType) {
   console.log('Using Moonshine Tiny for transcription via offscreen document');
   
-  // Send transcription request to offscreen document
-  const response = await chrome.runtime.sendMessage({
-    target: 'offscreen',
+  // Send transcription request to offscreen document using helper
+  const response = await sendToOffscreen({
     type: 'TRANSCRIBE',
     audioData: audioData,
     sampleRate: 16000
   });
   
-  if (!response.success) {
-    throw new Error(response.error || 'Transcription failed');
+  if (!response || !response.success) {
+    throw new Error(response?.error || 'Transcription failed');
   }
   
   console.log(`Transcription completed in ${response.processingTime}ms`);
@@ -295,18 +349,13 @@ async function transcribeWithMoonshine(audioData, mimeType) {
 }
 
 // Transcription function (Whisper.cpp integration point)
+// NOTE: Whisper WASM is not yet implemented. Use Moonshine (default) for transcription.
 async function transcribeWithWhisper(audioData, mimeType) {
-  // TODO: In production, integrate Whisper.cpp WASM here
+  // TODO: In production, integrate Whisper.cpp WASM here via offscreen document
+  // Similar pattern to Moonshine - would use sendToOffscreen()
   
-  // The actual implementation would:
-  // 1. Load the Whisper model (tiny/base/small)
-  // 2. Convert audio to 16kHz PCM
-  // 3. Run inference
-  // 4. Return transcribed text
-  
-  // For demo purposes, return a sample transcription
-  console.log('Using Whisper Tiny for transcription');
-  return "Thanks for reaching out. I'd love to chat about this tomorrow afternoon if that works for you.";
+  // For now, throw error directing user to use Moonshine
+  throw new Error('Whisper WASM is not yet implemented. Please use Moonshine in Settings.');
 }
 
 // Handle text rewriting with LLM
