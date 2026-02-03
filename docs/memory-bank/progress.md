@@ -37,12 +37,12 @@
 - [ ] **Whisper Integration:** Placeholder only (Moonshine is primary).
 
 ## Post-Launch Stability (Phase 4)
-- [x] Fix "Model not loaded properly" race condition (Promise-based loading lock).
-- [x] Fix WASM backend loading (Bundle local WASM binaries).
-- [x] Fix "Infinite Formatting Hang" (WebLLM Worker stub & message routing).
-- [x] Comprehensive Unit Test Suite (Content, Background, Offscreen, Workers).
-- [x] Fix Service Worker syntax errors.
-- [x] Fix Manifest CSP for WASM workers.
+- [x] Fix "Model not loaded properly" race condition.
+- [x] Fix WASM backend loading (Local Bundle).
+- [x] Fix "Infinite Formatting Hang" (Timeout reduced + Stub Worker).
+- [x] **Model Upgrade:** Switched to `Whisper Tiny` (40MB) for better stability/speed.
+- [x] **UX Polish:** Auto-hide redundant textual output.
+- [x] Comprehensive Unit Test Suite (100% Pass).
 
 ## Known Blockers
 - None for MVP.

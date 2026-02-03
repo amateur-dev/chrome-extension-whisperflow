@@ -1,29 +1,24 @@
 # activeContext
 
 ## Current Session
-**Goal:** Fix user-reported "Model not loaded" error and "Formatting Infinite Hang".
+**Goal:** Fix user-reported UX issues (Hang, Hallucinations, UI Clutter).
 
 ## Current Focus
-- Resolved WASM loading issue by bundling binary files locally (removed CDN dependency).
-- Fixed WebLLM Worker communication breakdown (causing formatting hang).
-- Added robust unit test for WebLLM Worker.
+- Switched AI Model from `Moonshine Tiny` to `Whisper Tiny` for better accuracy/speed.
+- Reduced Formatting Timeout to 5s.
+- Cleaned up UI (Auto-hiding duplicate original text).
 
 ## Recent Changes
-- **WASM Bundle Fix:**
-  - Copied `ort-wasm-simd-threaded.wasm` to `lib/`.
-  - Updated `moonshine-worker.js` to load from local path.
-- **Worker Communication Fix:**
-  - Updated `offscreen.js` to route `REWRITE` messages correctly.
-  - Refactored `webllm-worker.js` to handle messages reliably & provide Stub/Fallback.
-  - Fixed syntax error in `webllm-worker.js`.
-- **Testing:**
-  - Created `tests/unit/webllm.test.js` covering worker initialization and message handling.
-  - Verified all 6 suite tests (61 tests total) pass.
-
-## Previous Changes (Phase 3)
-- Restored `content.js` Floating Mic logic.
-- Fixed WASM thread safety loop.
+- **Model Switch:**
+  - Upgraded `moonshine-worker.js` to use `Xenova/whisper-tiny` (40MB).
+  - Significantly faster download and better "1700 hours" handling.
+- **UX Fixes:**
+  - **Timeout:** Reduced `offscreen.js` rewrite timeout from 120s -> 5s.
+  - **UI Clutter:** Updated `popup.js` to hide "Original" box if identical to "Formatted".
+- **Previous Fixes:**
+  - Resolved WASM loading (local bundle).
+  - Fixed WebLLM Worker communication.
 
 ## Next Steps
-- [ ] Manual E2E test: Record audio -> Transcribe -> Format -> Check Result.
+- [ ] Manual E2E test: Record audio -> Transcribe (Whisper) -> Format -> Check UI.
 - [ ] Release Prep: Create a zip build for manual installation.
