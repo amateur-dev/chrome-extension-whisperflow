@@ -160,6 +160,9 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
   console.log('[OFFSCREEN] transcribeAudio Step 1: Starting...');
   console.log('[OFFSCREEN] Audio data length:', audioData?.length);
   
+  // Send stage update
+  sendProgressToServiceWorker('Initializing audio processor...');
+  
   initWorker();
   
   if (!moonshineWorker) {
@@ -168,14 +171,17 @@ async function transcribeAudio(audioData, sampleRate = 16000) {
   }
   
   console.log('[OFFSCREEN] transcribeAudio Step 2: Worker ready');
+  sendProgressToServiceWorker('Audio processor ready...');
   
   // Decode audio in offscreen document (has AudioContext access)
   // Workers don't have access to AudioContext/OfflineAudioContext
   let decodedAudio;
   try {
     console.log('[OFFSCREEN] transcribeAudio Step 3: Decoding audio...');
+    sendProgressToServiceWorker('Decoding audio...');
     decodedAudio = await decodeBase64AudioToFloat32(audioData, sampleRate);
     console.log('[OFFSCREEN] transcribeAudio Step 4: Decoded!', decodedAudio.length, 'samples');
+    sendProgressToServiceWorker('Audio decoded, starting transcription...');
   } catch (decodeError) {
     console.error('[OFFSCREEN] Audio decode failed:', decodeError);
     throw new Error('Failed to decode audio: ' + decodeError.message);
@@ -304,6 +310,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return false;
   }
 });
+
+/**
+ * Send progress update to service worker (which forwards to popup)
+ */
+function sendProgressToServiceWorker(message, progress) {
+  chrome.runtime.sendMessage({
+    type: 'TRANSCRIPTION_PROGRESS',
+    message: message,
+    progress: progress
+  }).catch(() => {});
+}
 
 // Initialize worker on load
 initWorker();
