@@ -110,6 +110,14 @@ class VibeCodingPopup {
     this.elements.whisperRadio.addEventListener('change', () => this.onModelChange('whisper'));
     this.elements.moonshineRadio.addEventListener('change', () => this.onModelChange('moonshine'));
     
+    // Customize shortcuts button
+    const customizeBtn = document.getElementById('customizeShortcutsBtn');
+    if (customizeBtn) {
+      customizeBtn.addEventListener('click', () => {
+        chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+      });
+    }
+    
     // Listen for transcription progress messages from service worker
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'TRANSCRIPTION_PROGRESS') {
